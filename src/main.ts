@@ -14,10 +14,10 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xddbb96);
 
 const camera = new THREE.OrthographicCamera(
-  window.innerWidth / -10,
-  window.innerWidth / 10,
-  window.innerHeight / 10,
-  window.innerHeight / -10,
+  window.innerWidth / -30,
+  window.innerWidth / 30,
+  window.innerHeight / 30,
+  window.innerHeight / -30,
   0.1,
   1000,
 );
@@ -35,37 +35,20 @@ controls.update();
 
 const model = await myModel();
 
-const material = new THREE.MeshToonMaterial({
+const material = new THREE.MeshPhongMaterial({
   color: 0xc54e89,
 });
 
 const geom1 = mesh2geometry(await myModel());
 geom1.computeVertexNormals();
 const mesh1 = new THREE.Mesh(geom1, material);
-mesh1.position.x = -20;
 scene.add(mesh1);
 
-const geom2 = new THREE.BoxGeometry(20, 20, 20);
-const mesh2 = new THREE.Mesh(geom2, material);
-mesh2.position.x = 20;
-mesh2.position.y = 10;
-mesh2.position.z = 10;
-scene.add(mesh2);
+scene.add(new THREE.AmbientLight(0x404040, 1));
 
-const light = new THREE.AmbientLight(0x404040); // soft white light
-scene.add(light);
-
-const light2 = new THREE.DirectionalLight(0xffffff, 3);
-light2.position.set(0, 0, 200).normalize();
-scene.add(light2);
-
-const light3 = new THREE.DirectionalLight(0xdddddd, 0.7);
-light3.position.set(0, 0, -600).normalize();
-scene.add(light3);
-
-const light4 = new THREE.DirectionalLight(0xdddddd, 0.4);
-light4.position.set(0, 100, 0).normalize();
-scene.add(light4);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.target = mesh1;
+scene.add(directionalLight);
 
 camera.position.x = 200;
 camera.position.y = 200;
@@ -89,3 +72,13 @@ link.href = stlUrl;
 link.download = "skadis-box.3mf";
 
 document.body.appendChild(link);
+
+const button = document.createElement("button");
+button.innerText = "Reset";
+button.addEventListener("click", () => {
+  camera.position.x = 200;
+  camera.position.y = 200;
+  camera.position.z = 200;
+});
+
+document.body.appendChild(button);

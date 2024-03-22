@@ -3,6 +3,8 @@ import type { ManifoldToplevel } from "manifold-3d";
 import init from "manifold-3d";
 import manifold_wasm from "manifold-3d/manifold.wasm?url";
 
+// NOTE: all values are in mm
+
 // Load manifold 3d
 class ManifoldModule {
   private static wasm: ManifoldToplevel | undefined = undefined;
@@ -52,7 +54,7 @@ async function roundedRectangle(
   const w = size[0];
   const h = size[1];
   const basicArc = generateArc({
-    center: [w - cornerRadius, h - cornerRadius],
+    center: [w / 2 - cornerRadius, h / 2 - cornerRadius],
     radius: cornerRadius,
   });
 
@@ -75,8 +77,59 @@ async function roundedRectangle(
   return new CrossSection(vertices);
 }
 
-export async function myModel(): Promise<Manifold> {
-  const base = (await roundedRectangle([20, 30], 5)).extrude(20);
+async function clipRCrossSection(): Promise<CrossSection> {
+  const { CrossSection } = await ManifoldModule.get();
 
-  return base;
+  const vertices: Vec2[] = [
+    [0.95, 0],
+    [2.45, 0],
+    [2.45, 3.7],
+    [3.05, 4.3],
+    [3.05, 5.9],
+    [2.45, 6.5],
+    [0.95, 6.5],
+    [0.95, 0],
+  ];
+
+  return new CrossSection(vertices).rotate(180);
+}
+
+// The skadis clips, starting at the origin and pointing in -Z
+async function clips(): Promise<[Manifold, Manifold]> {
+  const clipR = (await clipRCrossSection()).extrude(10);
+  const clipL = (await clipRCrossSection()).mirror([1, 0]).extrude(10);
+
+  return [clipR, clipL];
+}
+
+// The box (with clips), with origin where clips meet the box
+export async function myModel(): Promise<Manifold> {
+  const width /* X */ = 40;
+  const depth /* Y */ = 30;
+  const height /* Z */ = 20;
+  const outerRadius = 5;
+  const wallThickness = 2;
+  const bottomThickness = 3;
+  const innerRadius = Math.max(0, outerRadius - wallThickness);
+  const base = (await roundedRectangle([width, depth], outerRadius)).extrude(
+    height,
+  );
+  const innerNeg = (
+    await roundedRectangle(
+      [width - 2 * wallThickness, depth - 2 * wallThickness],
+      innerRadius,
+    )
+  )
+    .extrude(height - bottomThickness)
+    .translate([0, 0, 5]);
+
+  const box = base.subtract(innerNeg).translate(0, depth / 2, 0);
+
+  let res = box;
+  const [clipL, clipR] = await clips();
+
+  res = res.add(clipL);
+  res = res.add(clipR);
+
+  return res;
 }
