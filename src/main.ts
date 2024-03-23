@@ -14,10 +14,10 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xddbb96);
 
 const camera = new THREE.OrthographicCamera(
-  window.innerWidth / -30,
-  window.innerWidth / 30,
-  window.innerHeight / 30,
-  window.innerHeight / -30,
+  window.innerWidth / -20,
+  window.innerWidth / 20,
+  window.innerHeight / 20,
+  window.innerHeight / -20,
   0.1,
   1000,
 );
@@ -35,26 +35,45 @@ controls.update();
 
 const model = await myModel();
 
-const material = new THREE.MeshPhongMaterial({
-  color: 0xc54e89,
+const geometry = mesh2geometry(model);
+
+geometry.computeVertexNormals();
+var material = new THREE.MeshToonMaterial({
+  color: 0xdd8888,
+  polygonOffset: true,
+  polygonOffsetFactor: 1, // positive value pushes polygon further away
+  polygonOffsetUnits: 1,
 });
+var mesh = new THREE.Mesh(geometry, material);
+const back = mesh.clone();
 
-const geom1 = mesh2geometry(await myModel());
-geom1.computeVertexNormals();
-const mesh1 = new THREE.Mesh(geom1, material);
-scene.add(mesh1);
+back.setRotationFromEuler(new THREE.Euler(0, 0, Math.PI / 2, "XYZ"));
+back.position.x = -25;
+back.position.y = 50;
+scene.add(mesh);
+scene.add(back);
 
-scene.add(new THREE.AmbientLight(0x404040, 1));
+// Add basic geometry outline
+function addEdges(msh: THREE.Mesh) {
+  const geo = new THREE.EdgesGeometry(msh.geometry, 25);
+  const mat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 20 });
+  msh.add(new THREE.LineSegments(geo, mat));
+}
+
+addEdges(mesh);
+addEdges(back);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1));
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.target = mesh1;
+directionalLight.target = mesh;
 scene.add(directionalLight);
 
 camera.position.x = 200;
 camera.position.y = 200;
 camera.position.z = 200;
 
-camera.lookAt(0, 0, 0);
+camera.lookAt(100, 100, 0);
 
 function animate() {
   requestAnimationFrame(animate);
