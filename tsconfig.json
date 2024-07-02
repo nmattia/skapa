@@ -1,5 +1,10 @@
 {
   "compilerOptions": {
+
+    "baseUrl": ".", // Required if "paths" is defined
+    "paths": {
+      "@src/*": ["src/*"]
+    },
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
@@ -19,5 +24,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "demo"]
 }

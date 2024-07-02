@@ -7,12 +7,13 @@
     "dev": "vite",
     "tsc": "tsc",
     "build": "tsc && vite build",
-    "format": "prettier ./src -w"
+    "format": "prettier ./src ./demo -w"
   },
   "devDependencies": {
     "@types/three": "^0.166.0",
     "typescript": "^5.5.2",
-    "vite": "^5.3.2"
+    "vite": "^5.3.2",
+    "vite-tsconfig-paths": "^4.3.2"
   },
   "dependencies": {
     "@jscadui/3mf-export": "^0.5.0",
