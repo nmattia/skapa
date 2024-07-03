@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+
 import vertexShader from "./vert.glsl?raw";
 import fragmentShader from "./frag.glsl?raw";
 
@@ -27,6 +28,10 @@ document.body.appendChild(renderer.domElement);
 
 const depthRenderTarget = new THREE.WebGLRenderTarget();
 const composer = new EffectComposer(renderer, depthRenderTarget);
+
+// Render target for normals
+const normalRenderTarget = new THREE.WebGLRenderTarget();
+const normalMaterial = new THREE.MeshNormalMaterial();
 
 // Setup camera on front wall, looking at the back wall
 const camera = new THREE.OrthographicCamera();
@@ -53,11 +58,18 @@ sphere.position.y = 150;
 sphere.position.z = 150;
 scene.add(sphere);
 
+const torusGeo = new THREE.TorusGeometry(30, 10, 16, 100);
+const torus = new THREE.Mesh(torusGeo, material);
+torus.position.x = 200;
+torus.position.y = 60;
+torus.position.z = 150;
+scene.add(torus);
+
 const cubeGeo = new THREE.BoxGeometry(40, 64, 32);
 const cube = new THREE.Mesh(cubeGeo, material);
 cube.position.x = 200;
 cube.position.y = 150;
-cube.position.z = 150;
+cube.position.z = 180;
 scene.add(cube);
 
 const renderPass = new RenderPass(scene, camera);
@@ -66,6 +78,8 @@ composer.addPass(renderPass);
 const depthShader = {
   uniforms: {
     tDepth: { value: null },
+    tNormal: { value: null },
+    texelSize: { value: null },
   },
   vertexShader,
   fragmentShader,
@@ -92,12 +106,12 @@ function resizeCanvasToDisplaySize(force = false) {
   renderer.setSize(container.innerWidth, container.innerHeight);
   composer.setSize(container.innerWidth, container.innerHeight);
   depthRenderTarget.setSize(container.innerWidth, container.innerHeight);
+  normalRenderTarget.setSize(container.innerWidth, container.innerHeight);
 
-  // TODO: what should the dimensions be?
-  const depthTexture = new THREE.DepthTexture(
-    container.innerWidth,
-    container.innerHeight,
-  );
+  // Texture used to carry depth data
+  const texWidth = container.innerWidth * window.devicePixelRatio;
+  const texHeight = container.innerHeight * window.devicePixelRatio;
+  const depthTexture = new THREE.DepthTexture(texWidth, texHeight);
   depthRenderTarget.depthTexture = depthTexture;
 
   // View height & width, in world coordinates
@@ -110,7 +124,12 @@ function resizeCanvasToDisplaySize(force = false) {
   camera.bottom = viewHeight / -2;
   camera.updateProjectionMatrix();
 
+  depthPass.uniforms.tNormal.value = normalRenderTarget.texture;
   depthPass.uniforms.tDepth.value = depthTexture;
+  depthPass.uniforms.texelSize.value = new THREE.Vector2(
+    1 / texWidth,
+    1 / texHeight,
+  );
 }
 
 resizeCanvasToDisplaySize(true);
@@ -120,6 +139,15 @@ function animate() {
   resizeCanvasToDisplaySize();
   cube.rotation.z += 0.01;
   sphere.rotation.z += 0.01;
+  torus.rotation.y += 0.01;
+
+  const oldMat = scene.overrideMaterial;
+  scene.overrideMaterial = normalMaterial;
+
+  renderer.setRenderTarget(normalRenderTarget);
+  renderer.render(scene, camera);
+
+  scene.overrideMaterial = oldMat;
 
   composer.render();
 }
