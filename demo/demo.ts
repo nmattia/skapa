@@ -1,5 +1,6 @@
 /* Renders a box 300 x 300 x 300 (assumed mm)
- * Camera in the middle of the front wall and looking at the middle of the back wall
+ * Camera in the top left corner of the front wall and looking at the bottom right
+ * corner of the back wall
  * Origin is at the bottom left of the front wall
  * Right: X
  * Back: Y
@@ -47,9 +48,8 @@ camera.lookAt(300, 300, 0);
 
 // Scene & objects
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xddbb96);
 
-const material = new THREE.MeshBasicMaterial({ color: 0xdddddd });
+const material = new THREE.MeshBasicMaterial({});
 
 const sphereGeo = new THREE.SphereGeometry(40, 12, 8);
 const sphere = new THREE.Mesh(sphereGeo, material);
@@ -136,19 +136,25 @@ resizeCanvasToDisplaySize(true);
 
 function animate() {
   requestAnimationFrame(animate);
+
+  // Resize if necessary
   resizeCanvasToDisplaySize();
   cube.rotation.z += 0.01;
   sphere.rotation.z += 0.01;
   torus.rotation.y += 0.01;
 
+  // Temporarily swap all materials for the normal material
   const oldMat = scene.overrideMaterial;
   scene.overrideMaterial = normalMaterial;
 
+  // Render normals
   renderer.setRenderTarget(normalRenderTarget);
   renderer.render(scene, camera);
 
+  // Revert override
   scene.overrideMaterial = oldMat;
 
+  // Actual render
   composer.render();
 }
 
