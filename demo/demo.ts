@@ -11,6 +11,8 @@ import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 import vertexShader from "./vert.glsl?raw";
 import fragmentShader from "./frag.glsl?raw";
@@ -27,10 +29,11 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-const depthRenderTarget = new THREE.WebGLRenderTarget();
-const composer = new EffectComposer(renderer, depthRenderTarget);
+const renderTarget = new THREE.WebGLRenderTarget();
+const composer = new EffectComposer(renderer, renderTarget);
 
-// Render target for normals
+// Render targets for depth & normals
+const depthRenderTarget = new THREE.WebGLRenderTarget();
 const normalRenderTarget = new THREE.WebGLRenderTarget();
 const normalMaterial = new THREE.MeshNormalMaterial();
 
@@ -72,6 +75,20 @@ cube.position.y = 150;
 cube.position.z = 180;
 scene.add(cube);
 
+// Two static cubes, at the same angle from the camera, to ensure depth outline works
+// (normals get confused by surface with the same angle)
+const cubeFar1 = new THREE.Mesh(cubeGeo, material);
+const cubeFar2 = new THREE.Mesh(cubeGeo, material);
+
+cubeFar1.position.x = 110;
+cubeFar1.position.y = 200;
+cubeFar1.position.z = 190;
+cubeFar2.position.x = 140;
+cubeFar2.position.y = 250;
+cubeFar2.position.z = 170;
+scene.add(cubeFar1);
+scene.add(cubeFar2);
+
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
 
@@ -87,6 +104,15 @@ const depthShader = {
 
 const depthPass = new ShaderPass(depthShader);
 composer.addPass(depthPass);
+
+// By default, EffectComposer has an implicit rendering pass at the end.
+// However here we perform the OutputPass explicitly so that we can
+// add an FXAA pass _after_.
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+const fxaaPass = new ShaderPass(FXAAShader);
+composer.addPass(fxaaPass);
 
 function resizeCanvasToDisplaySize(force = false) {
   const container = window;
@@ -107,6 +133,11 @@ function resizeCanvasToDisplaySize(force = false) {
   composer.setSize(container.innerWidth, container.innerHeight);
   depthRenderTarget.setSize(container.innerWidth, container.innerHeight);
   normalRenderTarget.setSize(container.innerWidth, container.innerHeight);
+  const pixelRatio = renderer.getPixelRatio();
+  fxaaPass.material.uniforms["resolution"].value.x =
+    1 / (container.innerWidth * pixelRatio);
+  fxaaPass.material.uniforms["resolution"].value.y =
+    1 / (container.innerHeight * pixelRatio);
 
   // Texture used to carry depth data
   const texWidth = container.innerWidth * window.devicePixelRatio;
@@ -143,18 +174,23 @@ function animate() {
   sphere.rotation.z += 0.01;
   torus.rotation.y += 0.01;
 
+  // Render once for depth
+  renderer.setRenderTarget(depthRenderTarget);
+  renderer.render(scene, camera);
+
+  // Render once for normals
+
   // Temporarily swap all materials for the normal material
   const oldMat = scene.overrideMaterial;
   scene.overrideMaterial = normalMaterial;
 
-  // Render normals
   renderer.setRenderTarget(normalRenderTarget);
   renderer.render(scene, camera);
 
   // Revert override
   scene.overrideMaterial = oldMat;
 
-  // Actual render
+  // Render to screen
   composer.render();
 }
 
