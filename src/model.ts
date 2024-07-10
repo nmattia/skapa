@@ -131,5 +131,5 @@ export async function myModel(): Promise<Manifold> {
   res = res.add(clipL);
   res = res.add(clipR);
 
-  return res;
+  return res.scale(4);
 }

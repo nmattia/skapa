@@ -1,3 +1,20 @@
 :root {
   font-family: system-ui;
 }
+
+body {
+  max-width: 900px;
+  margin: auto;
+}
+
+canvas {
+  width: 100%;
+  outline: 2px solid black;
+  border-radius: 5px;
+  outline-offset: -2px;
+}
+
+header {
+  font-family: "Kanit";
+  font-size: 2em;
+}
