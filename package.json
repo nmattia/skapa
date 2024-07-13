@@ -7,7 +7,7 @@
     "dev": "vite",
     "tsc": "tsc",
     "build": "tsc && vite build",
-    "format": "prettier ./src -w"
+    "format": "prettier ./src ./index.html -w"
   },
   "devDependencies": {
     "@types/three": "^0.166.0",

@@ -7,14 +7,28 @@ body {
   margin: auto;
 }
 
+section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
 canvas {
   width: 100%;
-  outline: 2px solid black;
-  border-radius: 5px;
+}
+
+main {
+  outline: 1px solid black;
+  border-radius: 1px;
   outline-offset: -2px;
+  padding: 2em;
 }
 
 header {
   font-family: "Kanit";
   font-size: 2em;
+}
+
+footer {
+  margin-top: 5em;
+  text-align: center;
 }

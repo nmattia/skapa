@@ -18,10 +18,10 @@ THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 // Rendering setup
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
+  canvas: document.querySelector("canvas")!,
 });
 
 renderer.setPixelRatio(window.devicePixelRatio);
-document.querySelector("section")?.appendChild(renderer.domElement);
 
 const renderTarget = new THREE.WebGLRenderTarget();
 const composer = new EffectComposer(renderer, renderTarget);
@@ -56,6 +56,15 @@ const mesh = new THREE.Mesh(geometry, material);
 mesh.position.x = 80;
 mesh.position.y = 150;
 mesh.position.z = 150;
+
+document.querySelector("#left")!.addEventListener("click", () => {
+  mesh.rotation.z -= Math.PI / 2;
+});
+
+document.querySelector("#right")!.addEventListener("click", () => {
+  mesh.rotation.z += Math.PI / 2;
+});
+
 scene.add(mesh);
 
 const renderPass = new RenderPass(scene, camera);
@@ -161,14 +170,31 @@ function animate() {
 
 animate();
 
+// Initialize inputs
+
+const dimensionInnerButton: HTMLInputElement =
+  document.querySelector("#inner")!;
+dimensionInnerButton.checked = true;
+
+const dimensionOuterButton: HTMLInputElement =
+  document.querySelector("#outer")!;
+dimensionOuterButton.checked = false;
+
+const heightInput: HTMLInputElement = document.querySelector("#height")!;
+heightInput.value = "42";
+
+const widthInput: HTMLInputElement = document.querySelector("#width")!;
+widthInput.value = "44";
+
+const depthInput: HTMLInputElement = document.querySelector("#depth")!;
+depthInput.value = "49";
+
 // Download button
 
 const stlBlob = exportManifold(model);
 const stlUrl = URL.createObjectURL(stlBlob);
 
-const link = document.createElement("a");
+const link = document.querySelector("a")!;
 link.innerText = "Download";
 link.href = stlUrl;
 link.download = "skadis-box.3mf";
-
-document.body.appendChild(link);
