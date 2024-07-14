@@ -13,6 +13,8 @@ import fragmentShader from "./frag.glsl?raw";
 import { myModel } from "./model";
 import { exportManifold, mesh2geometry } from "./3mfExport";
 
+import { Dyn } from "./twrl";
+
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
 // Rendering setup
@@ -170,24 +172,57 @@ function animate() {
 
 animate();
 
+// Initialize state
+const dimensionType = new Dyn<"inner" | "outer">("inner");
+
+const dimensionsInner = {
+  height: new Dyn(20),
+  width: new Dyn(30),
+  depth: new Dyn(40),
+} as const;
+
 // Initialize inputs
+(["inner", "outer"] as const).forEach((dity) => {
+  const selectors = { inner: "#inner", outer: "#outer" } as const;
+  const radio: HTMLInputElement = document.querySelector(selectors[dity])!;
 
-const dimensionInnerButton: HTMLInputElement =
-  document.querySelector("#inner")!;
-dimensionInnerButton.checked = true;
+  // NOTE: on radio elements, 'change' triggers only when element is checked which explains
+  // why we don't have to read '.checked'
+  radio.addEventListener("change", () => {
+    dimensionType.send(dity);
+  });
 
-const dimensionOuterButton: HTMLInputElement =
-  document.querySelector("#outer")!;
-dimensionOuterButton.checked = false;
+  // initial checked value
+  const checked = ({ inner: true, outer: false } as const)[dity];
+  radio.checked = checked;
+});
 
-const heightInput: HTMLInputElement = document.querySelector("#height")!;
-heightInput.value = "42";
+// The dimension inputs
+const inputs = {
+  height: document.querySelector("#height")! as HTMLInputElement,
+  width: document.querySelector("#width")! as HTMLInputElement,
+  depth: document.querySelector("#depth")! as HTMLInputElement,
+} as const;
 
-const widthInput: HTMLInputElement = document.querySelector("#width")!;
-widthInput.value = "44";
+dimensionType.addListener((dity) => {
+  const delta = ({ inner: 0, outer: 3 } as const)[dity];
 
-const depthInput: HTMLInputElement = document.querySelector("#depth")!;
-depthInput.value = "49";
+  (["height", "width", "depth"] as const).forEach((dim) => {
+    inputs[dim].value = dimensionsInner[dim].latest + delta + "";
+  });
+});
+// Need to trigger the initial value
+dimensionType.send(dimensionType.latest);
+
+// Add change events to all dimension inputs
+(["height", "width", "depth"] as const).forEach((dim) => {
+  inputs[dim].addEventListener("change", () => {
+    const dity = dimensionType.latest;
+    const delta = ({ inner: 0, outer: 3 } as const)[dity];
+    const value = parseInt(inputs[dim].value);
+    if (!Number.isNaN(value)) dimensionsInner[dim].send(value - delta);
+  });
+});
 
 // Download button
 
