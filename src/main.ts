@@ -17,6 +17,10 @@ import { Dyn } from "./twrl";
 
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
+const START_HEIGHT = 20;
+const START_WIDTH = 40;
+const START_DEPTH = 30;
+
 // Rendering setup
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -50,7 +54,7 @@ const scene = new THREE.Scene();
 
 const material = new THREE.MeshBasicMaterial({});
 
-const model = await myModel();
+const model = await myModel(START_HEIGHT, START_WIDTH, START_DEPTH);
 const geometry = mesh2geometry(model);
 
 geometry.computeVertexNormals(); // Make sure the geometry has normals
@@ -176,9 +180,9 @@ animate();
 const dimensionType = new Dyn<"inner" | "outer">("inner");
 
 const dimensionsInner = {
-  height: new Dyn(20),
-  width: new Dyn(30),
-  depth: new Dyn(40),
+  height: new Dyn(START_HEIGHT),
+  width: new Dyn(START_WIDTH),
+  depth: new Dyn(START_DEPTH),
 } as const;
 
 // Initialize inputs
@@ -211,8 +215,7 @@ dimensionType.addListener((dity) => {
     inputs[dim].value = dimensionsInner[dim].latest + delta + "";
   });
 });
-// Need to trigger the initial value
-dimensionType.send(dimensionType.latest);
+dimensionType.send(dimensionType.latest); // Need to trigger the initial value
 
 // Add change events to all dimension inputs
 (["height", "width", "depth"] as const).forEach((dim) => {
@@ -224,8 +227,21 @@ dimensionType.send(dimensionType.latest);
   });
 });
 
-// Download button
+async function reloadModel(height: number, width: number, depth: number) {
+  const model = await myModel(height, width, depth);
+  const geometry = mesh2geometry(model);
+  geometry.computeVertexNormals(); // Make sure the geometry has normals
+  mesh.geometry = geometry;
+}
 
+const height = dimensionsInner.height;
+const width = dimensionsInner.width;
+const depth = dimensionsInner.depth;
+
+Dyn.zip3(height, width, depth).addListener(([h, w, d]) => reloadModel(h, w, d));
+
+// Download button
+// FIXME: this should download the updated model, not the original one
 const stlBlob = exportManifold(model);
 const stlUrl = URL.createObjectURL(stlBlob);
 

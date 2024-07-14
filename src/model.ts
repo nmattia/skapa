@@ -103,10 +103,11 @@ async function clips(): Promise<[Manifold, Manifold]> {
 }
 
 // The box (with clips), with origin where clips meet the box
-export async function myModel(): Promise<Manifold> {
-  const width /* X */ = 40;
-  const depth /* Y */ = 30;
-  const height /* Z */ = 20;
+export async function myModel(
+  height: number,
+  width: number,
+  depth: number,
+): Promise<Manifold> {
   const outerRadius = 5;
   const wallThickness = 2;
   const bottomThickness = 3;

@@ -27,6 +27,15 @@ export class Dyn<A> {
     this.latest = a;
   }
 
+  static zip3<A, B, C>(a: Dyn<A>, b: Dyn<B>, c: Dyn<C>): Dyn<[A, B, C]> {
+    const zipped = new Dyn<[A, B, C]>([a.latest, b.latest, c.latest]);
+    a.addListener((v: A) => zipped.send([v, b.latest, c.latest]));
+    b.addListener((v: B) => zipped.send([a.latest, v, c.latest]));
+    c.addListener((v: C) => zipped.send([a.latest, b.latest, v]));
+
+    return zipped;
+  }
+
   // How the mapped chan should handle the value
   protected __handleMapOpts<B>(
     opts: ((a: A) => B) | { f: (a: A) => B | typeof Dyn.unchanged; def: B },
