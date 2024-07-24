@@ -131,6 +131,7 @@ export async function myModel(
 
   res = res.add(clipL);
   res = res.add(clipR);
+  res = res.translate(0, -depth / 2, 0); // Move origin back to center
 
   return res.scale(4);
 }
