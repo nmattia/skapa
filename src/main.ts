@@ -66,12 +66,12 @@ const mesh = new THREE.Mesh(geometry, material);
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
 
-document.querySelector("#left")!.addEventListener("click", () => {
-  rotation.startAnimationTo((rot) => rot - 1);
-});
+// When true, the back of the object should be shown
+const showBack = new Dyn(false);
+showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
 
-document.querySelector("#right")!.addEventListener("click", () => {
-  rotation.startAnimationTo((rot) => rot + 1);
+document.querySelector("#flip")!.addEventListener("click", () => {
+  showBack.send(!showBack.latest);
 });
 
 scene.add(mesh);
@@ -294,7 +294,6 @@ const centerCamera = () => {
   let top = -Infinity;
   let bottom = Infinity;
 
-
   // Iterate over all verticies in the model, keeping track of the min/max horizontal
   // & vertical values of projection (NDC)
   for (
@@ -302,7 +301,7 @@ const centerCamera = () => {
     i < geometryVerticies.count / geometryVerticies.itemSize;
     i++
   ) {
-        // Load vertex & move to world coordinates
+    // Load vertex & move to world coordinates
     vertex.fromArray(geometryVerticies.array, i * geometryVerticies.itemSize);
     vertex.add(mesh.position);
 
