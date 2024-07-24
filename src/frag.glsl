@@ -4,11 +4,11 @@ uniform sampler2D tDepth;
 uniform vec2 texelSize;
 
 // Configuration values for edge detection
-const float scale = 3.0;
+const float scale = 4.0;
 const float halfScaleFloor = floor(scale * 0.5);
 const float halfScaleCeil = ceil(scale * 0.5);
-const float depthThreshold = 0.010;
-const float normalThreshold = 0.4;
+const float depthThreshold = 0.05;
+const float normalThreshold = 0.2;
 
 struct RobertsCross
 {

@@ -66,6 +66,9 @@ mesh.position.x = 80;
 mesh.position.y = 150;
 mesh.position.z = 150;
 
+const MESH_ROTATION_DELTA = 0.15;
+mesh.rotation.z = MESH_ROTATION_DELTA;
+
 document.querySelector("#left")!.addEventListener("click", () => {
   rotation.startAnimationTo((rot) => rot - 1);
 });
@@ -167,7 +170,7 @@ function animate() {
   // Handle rotation animation
   const rotationUpdated = rotation.update();
   if (rotationUpdated) {
-    mesh.rotation.z = (rotation.current * Math.PI) / 2;
+    mesh.rotation.z = rotation.current * Math.PI + MESH_ROTATION_DELTA;
   }
 
   // Handle dimensions animation
