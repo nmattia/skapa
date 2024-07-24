@@ -62,9 +62,6 @@ const geometry = mesh2geometry(model);
 
 geometry.computeVertexNormals(); // Make sure the geometry has normals
 const mesh = new THREE.Mesh(geometry, material);
-mesh.position.x = 80;
-mesh.position.y = 150;
-mesh.position.z = 150;
 
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
@@ -104,18 +101,11 @@ composer.addPass(outputPass);
 const fxaaPass = new ShaderPass(FXAAShader);
 composer.addPass(fxaaPass);
 
-function resizeCanvasToDisplaySize(force = false) {
+function resizeCanvas() {
   const container = window;
 
   // actual element aspect ratio
   const aspectRatio = container.innerWidth / container.innerHeight;
-  // previously set HTML width= & height= attributes
-  const aspectRatioOld = renderer.domElement.width / renderer.domElement.height;
-
-  // if the aspect ratio matches, skip
-  if (!force && Math.abs(aspectRatio - aspectRatioOld) < 0.01) {
-    return;
-  }
 
   // this sets width= and height= in HTML
   renderer.setSize(container.innerWidth, container.innerHeight, false);
@@ -152,7 +142,7 @@ function resizeCanvasToDisplaySize(force = false) {
   );
 }
 
-resizeCanvasToDisplaySize(true);
+let resizeCanvasNeeded = true;
 
 // The animated rotation
 const rotation = new Animate(0);
@@ -186,8 +176,29 @@ function animate() {
     );
   }
 
+  const container = window;
+
+  // actual element aspect ratio
+  const aspectRatio = container.innerWidth / container.innerHeight;
+  // previously set HTML width= & height= attributes
+  const aspectRatioOld = renderer.domElement.width / renderer.domElement.height;
+
+  if (centerCameraNeeded) {
+    centerCamera();
+    centerCameraNeeded = false;
+  }
+
+  // if the aspect ratio matches, skip
+  if (Math.abs(aspectRatio - aspectRatioOld) > 0.01) {
+    resizeCanvasNeeded = true;
+  }
+
   // Resize if necessary
-  resizeCanvasToDisplaySize();
+  if (resizeCanvasNeeded) {
+    resizeCanvas();
+    resizeCanvasNeeded = false;
+    centerCameraNeeded = true; // FIXME: not ideal
+  }
 
   // Render once for depth
   renderer.setRenderTarget(depthRenderTarget);
@@ -272,6 +283,68 @@ async function reloadModel(height: number, width: number, depth: number) {
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
 }
+
+let centerCameraNeeded = true;
+
+const centerCamera = () => {
+  const geometryVerticies = geometry.getAttribute("position");
+  const vertex = new THREE.Vector3();
+  let left = Infinity;
+  let right = -Infinity;
+  let top = -Infinity;
+  let bottom = Infinity;
+
+
+  // Iterate over all verticies in the model, keeping track of the min/max horizontal
+  // & vertical values of projection (NDC)
+  for (
+    let i = 0;
+    i < geometryVerticies.count / geometryVerticies.itemSize;
+    i++
+  ) {
+        // Load vertex & move to world coordinates
+    vertex.fromArray(geometryVerticies.array, i * geometryVerticies.itemSize);
+    vertex.add(mesh.position);
+
+    // Project vertex onto camera
+    const ndc = vertex.project(camera);
+
+    // Update mins & maxs
+    left = Math.min(left, ndc.x);
+    right = Math.max(right, ndc.x);
+    top = Math.max(top, ndc.y);
+    bottom = Math.min(bottom, ndc.y);
+  }
+
+  // For width & height, if the ratio to shift is greater than 1%, move the
+  // camera planes (left/righ, top/bottom)
+
+  const widthShiftRatio = (1 + left) / 2;
+  const updateHorizontal = Math.abs(widthShiftRatio) > 0.01;
+
+  if (updateHorizontal) {
+    const viewWidth = camera.right - camera.left;
+    const widthShiftWorld = viewWidth * widthShiftRatio;
+
+    camera.right += widthShiftWorld;
+    camera.left += widthShiftWorld;
+  }
+
+  const heightShiftRatio = (1 + bottom) / 2;
+  const updateVertical = Math.abs(heightShiftRatio) > 0.01;
+
+  if (updateVertical) {
+    const viewHeight = camera.top - camera.bottom;
+    const heightShiftWorld = viewHeight * heightShiftRatio;
+
+    camera.top += heightShiftWorld;
+    camera.bottom += heightShiftWorld;
+  }
+
+  if (updateHorizontal || updateVertical) {
+    camera.updateProjectionMatrix();
+  }
+};
 
 // Download button
 // FIXME: this should download the updated model, not the original one
