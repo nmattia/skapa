@@ -12,6 +12,7 @@ import fragmentShader from "./frag.glsl?raw";
 
 import { myModel } from "./model";
 import { exportManifold, mesh2geometry } from "./3mfExport";
+import { Animate } from "./animate";
 
 import { Dyn } from "./twrl";
 
@@ -64,11 +65,11 @@ mesh.position.y = 150;
 mesh.position.z = 150;
 
 document.querySelector("#left")!.addEventListener("click", () => {
-  mesh.rotation.z -= Math.PI / 2;
+  rotation.startAnimationTo((rot) => rot - 1);
 });
 
 document.querySelector("#right")!.addEventListener("click", () => {
-  mesh.rotation.z += Math.PI / 2;
+  rotation.startAnimationTo((rot) => rot + 1);
 });
 
 scene.add(mesh);
@@ -148,8 +149,37 @@ function resizeCanvasToDisplaySize(force = false) {
 
 resizeCanvasToDisplaySize(true);
 
+// The animated rotation
+const rotation = new Animate(0);
+
+// The animated dimensions
+const animations = {
+  height: new Animate(START_HEIGHT),
+  width: new Animate(START_WIDTH),
+  depth: new Animate(START_DEPTH),
+};
+
 function animate() {
   requestAnimationFrame(animate);
+
+  // Handle rotation animation
+  const rotationUpdated = rotation.update();
+  if (rotationUpdated) {
+    mesh.rotation.z = (rotation.current * Math.PI) / 2;
+  }
+
+  // Handle dimensions animation
+  const dimensionsUpdated = (["height", "width", "depth"] as const).reduce(
+    (acc, dim) => animations[dim].update() || acc,
+    false,
+  );
+  if (dimensionsUpdated) {
+    reloadModel(
+      animations["height"].current,
+      animations["width"].current,
+      animations["depth"].current,
+    );
+  }
 
   // Resize if necessary
   resizeCanvasToDisplaySize();
@@ -174,8 +204,6 @@ function animate() {
   composer.render();
 }
 
-animate();
-
 // Initialize state
 const dimensionType = new Dyn<"inner" | "outer">("inner");
 
@@ -183,7 +211,7 @@ const dimensionsInner = {
   height: new Dyn(START_HEIGHT),
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
-} as const;
+};
 
 // Initialize inputs
 (["inner", "outer"] as const).forEach((dity) => {
@@ -217,6 +245,12 @@ dimensionType.addListener((dity) => {
 });
 dimensionType.send(dimensionType.latest); // Need to trigger the initial value
 
+(["height", "width", "depth"] as const).forEach((dim) =>
+  dimensionsInner[dim].addListener((val) =>
+    animations[dim].startAnimationTo(val),
+  ),
+);
+
 // Add change events to all dimension inputs
 (["height", "width", "depth"] as const).forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
@@ -234,12 +268,6 @@ async function reloadModel(height: number, width: number, depth: number) {
   mesh.geometry = geometry;
 }
 
-const height = dimensionsInner.height;
-const width = dimensionsInner.width;
-const depth = dimensionsInner.depth;
-
-Dyn.zip3(height, width, depth).addListener(([h, w, d]) => reloadModel(h, w, d));
-
 // Download button
 // FIXME: this should download the updated model, not the original one
 const stlBlob = exportManifold(model);
@@ -249,3 +277,5 @@ const link = document.querySelector("a")!;
 link.innerText = "Download";
 link.href = stlUrl;
 link.download = "skadis-box.3mf";
+
+animate();
