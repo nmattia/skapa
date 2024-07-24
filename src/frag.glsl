@@ -7,7 +7,7 @@ uniform vec2 texelSize;
 const float scale = 4.0;
 const float halfScaleFloor = floor(scale * 0.5);
 const float halfScaleCeil = ceil(scale * 0.5);
-const float depthThreshold = 0.05;
+const float depthThreshold = 0.07;
 const float normalThreshold = 0.2;
 
 struct RobertsCross
