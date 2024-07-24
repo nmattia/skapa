@@ -30,8 +30,6 @@ const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector("canvas")!,
 });
 
-renderer.setPixelRatio(window.devicePixelRatio);
-
 const renderTarget = new THREE.WebGLRenderTarget();
 const composer = new EffectComposer(renderer, renderTarget);
 
@@ -42,9 +40,6 @@ const normalMaterial = new THREE.MeshNormalMaterial();
 
 // Setup camera on front wall, looking at the back wall
 const camera = new THREE.OrthographicCamera();
-
-camera.near = 0;
-camera.far = Math.sqrt(3) * 300; // Formula for cube diagonal
 
 camera.position.x = 0;
 camera.position.y = 0;
@@ -92,6 +87,12 @@ const depthShader = {
 const depthPass = new ShaderPass(depthShader);
 composer.addPass(depthPass);
 
+const container = document.querySelector("#container")!;
+
+// The container width & height used in computations last time we resized
+let lastContainerWidth = container.clientWidth;
+let lastContainerHeight = container.clientHeight;
+
 // By default, EffectComposer has an implicit rendering pass at the end.
 // However here we perform the OutputPass explicitly so that we can
 // add an FXAA pass _after_.
@@ -102,37 +103,43 @@ const fxaaPass = new ShaderPass(FXAAShader);
 composer.addPass(fxaaPass);
 
 function resizeCanvas() {
-  const container = window;
+  lastContainerWidth = container.clientWidth;
+  lastContainerHeight = container.clientHeight;
 
-  // actual element aspect ratio
-  const aspectRatio = container.innerWidth / container.innerHeight;
+  const containerWidth = lastContainerWidth;
+  const containerHeight = lastContainerHeight;
+
+  // Update global aspect ratio
+  aspectRatio = containerWidth / containerHeight;
+
+  renderer.setPixelRatio(window.devicePixelRatio);
 
   // this sets width= and height= in HTML
-  renderer.setSize(container.innerWidth, container.innerHeight, false);
-  composer.setSize(container.innerWidth, container.innerHeight);
-  depthRenderTarget.setSize(container.innerWidth, container.innerHeight);
-  normalRenderTarget.setSize(container.innerWidth, container.innerHeight);
-  const pixelRatio = renderer.getPixelRatio();
+  renderer.setSize(containerWidth, containerHeight, false);
+
+  // Set the sizes of the various render targets (taking pixel ratio into account)
+  composer.setSize(
+    containerWidth * window.devicePixelRatio,
+    containerHeight * window.devicePixelRatio,
+  );
+  depthRenderTarget.setSize(
+    containerWidth * window.devicePixelRatio,
+    containerHeight * window.devicePixelRatio,
+  );
+  normalRenderTarget.setSize(
+    containerWidth * window.devicePixelRatio,
+    containerHeight * window.devicePixelRatio,
+  );
   fxaaPass.material.uniforms["resolution"].value.x =
-    1 / (container.innerWidth * pixelRatio);
+    1 / (containerWidth * window.devicePixelRatio);
   fxaaPass.material.uniforms["resolution"].value.y =
-    1 / (container.innerHeight * pixelRatio);
+    1 / (containerHeight * window.devicePixelRatio);
 
   // Texture used to carry depth data
-  const texWidth = container.innerWidth * window.devicePixelRatio;
-  const texHeight = container.innerHeight * window.devicePixelRatio;
+  const texWidth = containerWidth * window.devicePixelRatio;
+  const texHeight = containerHeight * window.devicePixelRatio;
   const depthTexture = new THREE.DepthTexture(texWidth, texHeight);
   depthRenderTarget.depthTexture = depthTexture;
-
-  // View height & width, in world coordinates
-  const viewHeight = 300;
-  const viewWidth = aspectRatio * viewHeight;
-
-  camera.right = viewWidth / 2;
-  camera.left = viewWidth / -2;
-  camera.top = viewHeight / 2;
-  camera.bottom = viewHeight / -2;
-  camera.updateProjectionMatrix();
 
   depthPass.uniforms.tNormal.value = normalRenderTarget.texture;
   depthPass.uniforms.tDepth.value = depthTexture;
@@ -176,20 +183,16 @@ function animate() {
     );
   }
 
-  const container = window;
-
-  // actual element aspect ratio
-  const aspectRatio = container.innerWidth / container.innerHeight;
-  // previously set HTML width= & height= attributes
-  const aspectRatioOld = renderer.domElement.width / renderer.domElement.height;
-
-  if (centerCameraNeeded) {
-    centerCamera();
-    centerCameraNeeded = false;
+  // Sanity check
+  if (container.firstElementChild !== renderer.domElement) {
+    console.error("Container does not contain renderer element");
   }
 
-  // if the aspect ratio matches, skip
-  if (Math.abs(aspectRatio - aspectRatioOld) > 0.01) {
+  // If the DOM container was resized, recompute
+  if (
+    container.clientWidth !== lastContainerWidth ||
+    container.clientHeight !== lastContainerHeight
+  ) {
     resizeCanvasNeeded = true;
   }
 
@@ -197,7 +200,12 @@ function animate() {
   if (resizeCanvasNeeded) {
     resizeCanvas();
     resizeCanvasNeeded = false;
-    centerCameraNeeded = true; // FIXME: not ideal
+    centerCameraNeeded = true; // aspect ratio might have been updated
+  }
+
+  if (centerCameraNeeded) {
+    centerCamera();
+    centerCameraNeeded = false;
   }
 
   // Render once for depth
@@ -282,20 +290,27 @@ async function reloadModel(height: number, width: number, depth: number) {
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
+  centerCameraNeeded = true;
 }
 
+let aspectRatio = 1;
 let centerCameraNeeded = true;
 
 const centerCamera = () => {
   const geometryVerticies = geometry.getAttribute("position");
   const vertex = new THREE.Vector3();
+
+  // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
+  // to the far. For that reason some calculations for far & near are flipped.
   let left = Infinity;
   let right = -Infinity;
   let top = -Infinity;
   let bottom = Infinity;
+  let far = -Infinity;
+  let near = Infinity;
 
-  // Iterate over all verticies in the model, keeping track of the min/max horizontal
-  // & vertical values of projection (NDC)
+  // Iterate over all verticies in the model, keeping track of the min/max values of
+  // projection (onto camera plane)
   for (
     let i = 0;
     i < geometryVerticies.count / geometryVerticies.itemSize;
@@ -305,44 +320,32 @@ const centerCamera = () => {
     vertex.fromArray(geometryVerticies.array, i * geometryVerticies.itemSize);
     vertex.add(mesh.position);
 
-    // Project vertex onto camera
-    const ndc = vertex.project(camera);
+    // Look at the vertex from the camera's perspective
+    const v = camera.worldToLocal(vertex);
 
     // Update mins & maxs
-    left = Math.min(left, ndc.x);
-    right = Math.max(right, ndc.x);
-    top = Math.max(top, ndc.y);
-    bottom = Math.min(bottom, ndc.y);
+    left = Math.min(left, v.x);
+    right = Math.max(right, v.x);
+    top = Math.max(top, v.y);
+    bottom = Math.min(bottom, v.y);
+    far = Math.max(far, -v.z);
+    near = Math.min(near, -v.z);
   }
 
-  // For width & height, if the ratio to shift is greater than 1%, move the
-  // camera planes (left/righ, top/bottom)
+  // Calculate a new viewHeight so that the part fits vertically (plus padding)
+  const paddingV = 5;
+  const viewHeight = top - bottom + 2 * paddingV;
+  const viewWidth = aspectRatio * viewHeight;
+  const paddingH = paddingV * aspectRatio;
 
-  const widthShiftRatio = (1 + left) / 2;
-  const updateHorizontal = Math.abs(widthShiftRatio) > 0.01;
+  camera.left = left - paddingH;
+  camera.right = left + viewWidth + paddingH;
+  camera.top = bottom + viewHeight + paddingV;
+  camera.bottom = bottom - paddingV;
+  camera.far = far + 1;
+  camera.near = near - 1;
 
-  if (updateHorizontal) {
-    const viewWidth = camera.right - camera.left;
-    const widthShiftWorld = viewWidth * widthShiftRatio;
-
-    camera.right += widthShiftWorld;
-    camera.left += widthShiftWorld;
-  }
-
-  const heightShiftRatio = (1 + bottom) / 2;
-  const updateVertical = Math.abs(heightShiftRatio) > 0.01;
-
-  if (updateVertical) {
-    const viewHeight = camera.top - camera.bottom;
-    const heightShiftWorld = viewHeight * heightShiftRatio;
-
-    camera.top += heightShiftWorld;
-    camera.bottom += heightShiftWorld;
-  }
-
-  if (updateHorizontal || updateVertical) {
-    camera.updateProjectionMatrix();
-  }
+  camera.updateProjectionMatrix();
 };
 
 // Download button
