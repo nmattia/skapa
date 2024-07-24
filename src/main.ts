@@ -18,6 +18,8 @@ import { Dyn } from "./twrl";
 
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
+const DIMENSIONS = ["height", "width", "depth"] as const;
+
 const START_HEIGHT = 20;
 const START_WIDTH = 40;
 const START_DEPTH = 30;
@@ -169,7 +171,7 @@ function animate() {
   }
 
   // Handle dimensions animation
-  const dimensionsUpdated = (["height", "width", "depth"] as const).reduce(
+  const dimensionsUpdated = DIMENSIONS.reduce(
     (acc, dim) => animations[dim].update() || acc,
     false,
   );
@@ -239,20 +241,20 @@ const inputs = {
 dimensionType.addListener((dity) => {
   const delta = ({ inner: 0, outer: 3 } as const)[dity];
 
-  (["height", "width", "depth"] as const).forEach((dim) => {
+  DIMENSIONS.forEach((dim) => {
     inputs[dim].value = dimensionsInner[dim].latest + delta + "";
   });
 });
 dimensionType.send(dimensionType.latest); // Need to trigger the initial value
 
-(["height", "width", "depth"] as const).forEach((dim) =>
+DIMENSIONS.forEach((dim) =>
   dimensionsInner[dim].addListener((val) =>
     animations[dim].startAnimationTo(val),
   ),
 );
 
 // Add change events to all dimension inputs
-(["height", "width", "depth"] as const).forEach((dim) => {
+DIMENSIONS.forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
     const dity = dimensionType.latest;
     const delta = ({ inner: 0, outer: 3 } as const)[dity];

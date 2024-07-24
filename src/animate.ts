@@ -10,7 +10,6 @@ type Animation = {
 
 // Objects that can be tweened
 export class Animate {
-
   // The current value, possibly being interpolated
   public current: number;
 
