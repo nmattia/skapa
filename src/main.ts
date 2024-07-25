@@ -16,6 +16,11 @@ import { Animate } from "./animate";
 
 import { Dyn } from "./twrl";
 
+// Download button
+const link = document.querySelector("a")!;
+link.innerText = "Download";
+link.download = "skadis-box.3mf";
+
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
 const DIMENSIONS = ["height", "width", "depth"] as const;
@@ -52,11 +57,11 @@ const scene = new THREE.Scene();
 
 const material = new THREE.MeshBasicMaterial({});
 
-const model = await myModel(START_HEIGHT, START_WIDTH, START_DEPTH);
-const geometry = mesh2geometry(model);
-
-geometry.computeVertexNormals(); // Make sure the geometry has normals
-const mesh = new THREE.Mesh(geometry, material);
+let reloadModelNeeded = true;
+const mesh: THREE.Mesh = new THREE.Mesh(
+  new THREE.BoxGeometry(START_WIDTH, START_HEIGHT, START_DEPTH),
+  material,
+);
 
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
@@ -175,7 +180,7 @@ function animate() {
     (acc, dim) => animations[dim].update() || acc,
     false,
   );
-  if (dimensionsUpdated) {
+  if (reloadModelNeeded || dimensionsUpdated) {
     reloadModel(
       animations["height"].current,
       animations["width"].current,
@@ -291,13 +296,16 @@ async function reloadModel(height: number, width: number, depth: number) {
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
   centerCameraNeeded = true;
+  const stlBlob = exportManifold(model);
+  const stlUrl = URL.createObjectURL(stlBlob);
+  link.href = stlUrl;
 }
 
 let aspectRatio = 1;
 let centerCameraNeeded = true;
 
 const centerCamera = () => {
-  const geometryVerticies = geometry.getAttribute("position");
+  const geometryVerticies = mesh.geometry.getAttribute("position");
   const vertex = new THREE.Vector3();
 
   // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
@@ -347,15 +355,5 @@ const centerCamera = () => {
 
   camera.updateProjectionMatrix();
 };
-
-// Download button
-// FIXME: this should download the updated model, not the original one
-const stlBlob = exportManifold(model);
-const stlUrl = URL.createObjectURL(stlBlob);
-
-const link = document.querySelector("a")!;
-link.innerText = "Download";
-link.href = stlUrl;
-link.download = "skadis-box.3mf";
 
 animate();
