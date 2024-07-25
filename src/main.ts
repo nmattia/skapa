@@ -87,7 +87,7 @@ const depthShader = {
 const depthPass = new ShaderPass(depthShader);
 composer.addPass(depthPass);
 
-const container = document.querySelector("#container")!;
+const container = document.querySelector("#canvas-container")!;
 
 // The container width & height used in computations last time we resized
 let lastContainerWidth = container.clientWidth;

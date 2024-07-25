@@ -3,13 +3,23 @@
 }
 
 body {
-  max-width: 900px;
+  max-width: 600px;
   margin: auto;
+}
+@media (width > 900px) {
+  body {
+    max-width: 900px;
+  }
 }
 
 section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+}
+
+@media (width > 900px) {
+  section {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 canvas {
@@ -17,10 +27,15 @@ canvas {
 }
 
 main {
-  outline: 1px solid black;
-  border-radius: 1px;
-  outline-offset: -2px;
+  margin-top: 1em;
   padding: 2em;
+}
+@media (width > 900px) {
+  main {
+    outline: 1px solid black;
+    border-radius: 1px;
+    outline-offset: -2px;
+  }
 }
 
 header {
@@ -33,6 +48,13 @@ footer {
   text-align: center;
 }
 
-#container {
+#canvas-container {
   height: 20em;
+}
+
+#flip {
+  margin-top: 1em;
+  display: block;
+  height: 2em;
+  width: 100%;
 }
