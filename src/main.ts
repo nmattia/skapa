@@ -166,7 +166,7 @@ const animations = {
   depth: new Animate(START_DEPTH),
 };
 
-function animate() {
+function animate(nowMillis: DOMHighResTimeStamp) {
   requestAnimationFrame(animate);
 
   // Handle rotation animation
@@ -180,12 +180,29 @@ function animate() {
     (acc, dim) => animations[dim].update() || acc,
     false,
   );
-  if (reloadModelNeeded || dimensionsUpdated) {
+
+  if (dimensionsUpdated) {
+    reloadModelNeeded = true;
+  }
+
+  // Whether we should start loading a new model on this frame
+  // True if (1) model needs reloading and (2) no model is currently loading (or
+  // if loading seems stuck)
+  const reloadModelNow =
+    reloadModelNeeded &&
+    (modelLoadStarted === undefined || nowMillis - modelLoadStarted > 100);
+
+  if (reloadModelNow) {
+    modelLoadStarted = nowMillis;
     reloadModel(
       animations["height"].current,
       animations["width"].current,
       animations["depth"].current,
-    );
+    ).then(() => {
+      modelLoadStarted = undefined;
+      centerCameraNeeded = true;
+    });
+    reloadModelNeeded = false;
   }
 
   // Sanity check
@@ -290,12 +307,15 @@ DIMENSIONS.forEach((dim) => {
   });
 });
 
+// Set to current frame's timestamp when a model starts loading, and set
+// to undefined when the model has finished loading
+let modelLoadStarted: undefined | DOMHighResTimeStamp;
+
 async function reloadModel(height: number, width: number, depth: number) {
   const model = await myModel(height, width, depth);
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
-  centerCameraNeeded = true;
   const stlBlob = exportManifold(model);
   const stlUrl = URL.createObjectURL(stlBlob);
   link.href = stlUrl;
@@ -356,4 +376,8 @@ const centerCamera = () => {
   camera.updateProjectionMatrix();
 };
 
-animate();
+// performance.now() is equivalent to the timestamp supplied by
+// requestAnimationFrame
+//
+// https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
+animate(performance.now());
