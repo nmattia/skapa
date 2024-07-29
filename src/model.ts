@@ -124,14 +124,13 @@ export async function myModel(
     .extrude(height - bottomThickness)
     .translate([0, 0, 5]);
 
-  const box = base.subtract(innerNeg).translate(0, depth / 2, 0);
+  const box = base.subtract(innerNeg);
 
   let res = box;
   const [clipL, clipR] = await clips();
 
-  res = res.add(clipL);
-  res = res.add(clipR);
-  res = res.translate(0, -depth / 2, 0); // Move origin back to center
+  res = res.add(clipL.translate(0, -depth / 2, 0));
+  res = res.add(clipR.translate(0, -depth / 2, 0));
 
-  return res.scale(4);
+  return res;
 }

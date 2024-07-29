@@ -29,10 +29,17 @@ const START_HEIGHT = 20;
 const START_WIDTH = 40;
 const START_DEPTH = 30;
 
+const canvas = document.querySelector("canvas")!;
+
+// Overflow value (canvas overflowing outside of container)
+// that seems to accomodate part overflow for most dimensions
+const canvasOverflowPercent = 0.15;
+canvas.style.setProperty("--overflow", canvasOverflowPercent * 100 + "%");
+
 // Rendering setup
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
-  canvas: document.querySelector("canvas")!,
+  canvas,
 });
 
 const renderTarget = new THREE.WebGLRenderTarget();
@@ -323,11 +330,19 @@ async function reloadModel(height: number, width: number, depth: number) {
   link.href = stlUrl;
 }
 
-let aspectRatio = 1;
-let centerCameraNeeded = true;
-
-const centerCamera = () => {
-  const geometryVerticies = mesh.geometry.getAttribute("position");
+// Compute min & max of the verticies' projection onto the camera plane (coordinates in the
+// camera's coordinates)
+const computeProjectedBounds = (
+  verticies: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+  matrixWorld: THREE.Matrix4 /* the world matrix */,
+): {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  near: number;
+  far: number;
+} => {
   const vertex = new THREE.Vector3();
 
   // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
@@ -341,14 +356,10 @@ const centerCamera = () => {
 
   // Iterate over all verticies in the model, keeping track of the min/max values of
   // projection (onto camera plane)
-  for (
-    let i = 0;
-    i < geometryVerticies.count / geometryVerticies.itemSize;
-    i++
-  ) {
-    // Load vertex & move to world coordinates
-    vertex.fromArray(geometryVerticies.array, i * geometryVerticies.itemSize);
-    vertex.add(mesh.position);
+  for (let i = 0; i < verticies.count / verticies.itemSize; i++) {
+    // Load vertex & move to world coordinates (position & rotation)
+    vertex.fromArray(verticies.array, i * verticies.itemSize);
+    vertex.applyMatrix4(matrixWorld);
 
     // Look at the vertex from the camera's perspective
     const v = camera.worldToLocal(vertex);
@@ -362,16 +373,31 @@ const centerCamera = () => {
     near = Math.min(near, -v.z);
   }
 
-  // Calculate a new viewHeight so that the part fits vertically (plus padding)
-  const paddingV = 5;
-  const viewHeight = top - bottom + 2 * paddingV;
-  const viewWidth = aspectRatio * viewHeight;
-  const paddingH = paddingV * aspectRatio;
+  return { left, right, top, bottom, near, far };
+};
 
-  camera.left = left - paddingH;
-  camera.right = left + viewWidth + paddingH;
-  camera.top = bottom + viewHeight + paddingV;
-  camera.bottom = bottom - paddingV;
+let aspectRatio = 1;
+let centerCameraNeeded = true;
+
+const centerCamera = () => {
+  const geometry = mesh.geometry;
+  const geometryVerticies = geometry.getAttribute("position");
+
+  const { left, top, bottom, far, near } = computeProjectedBounds(
+    geometryVerticies,
+    mesh.matrixWorld,
+  );
+
+  // Calculate a new viewHeight so that the part fits vertically (plus overflow)
+  // View height/width in camera coordinates, exluding overflow
+  const viewHeight = top - bottom;
+  const viewWidth = aspectRatio * viewHeight;
+
+  // Adjust camera to view height & width, plus some overflow
+  camera.left = left - canvasOverflowPercent * viewWidth;
+  camera.right = left + (1 + canvasOverflowPercent) * viewWidth;
+  camera.top = bottom + (1 + canvasOverflowPercent) * viewHeight;
+  camera.bottom = bottom - canvasOverflowPercent * viewHeight;
   camera.far = far + 1;
   camera.near = near - 1;
 

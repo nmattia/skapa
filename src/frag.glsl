@@ -63,6 +63,10 @@ void main() {
 
     float edge = max(edgeDepth, edgeNormal);
 
+    float depth = texture2D(tDepth, vUv).x;
+
     gl_FragColor.rgb = 1.0 - vec3(edge);
-    gl_FragColor.a = 1.0;
+    // Make alpha transparent if depth == 1 (hitting far plane) UNLESS
+    // we are drawing an edge
+    gl_FragColor.a = 1.0 - step(1.0, depth) + edge;
 }
