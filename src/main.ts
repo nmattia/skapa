@@ -123,26 +123,28 @@ function resizeCanvas() {
   renderer.setSize(containerWidth, containerHeight, false);
 
   // Set the sizes of the various render targets (taking pixel ratio into account)
+  // (multiplying every by 2 to get better resolution and precision at the cost
+  // of more work)
   composer.setSize(
-    containerWidth * window.devicePixelRatio,
-    containerHeight * window.devicePixelRatio,
+    containerWidth * window.devicePixelRatio * 2,
+    containerHeight * window.devicePixelRatio * 2,
   );
   depthRenderTarget.setSize(
-    containerWidth * window.devicePixelRatio,
-    containerHeight * window.devicePixelRatio,
+    containerWidth * window.devicePixelRatio * 2,
+    containerHeight * window.devicePixelRatio * 2,
   );
   normalRenderTarget.setSize(
-    containerWidth * window.devicePixelRatio,
-    containerHeight * window.devicePixelRatio,
+    containerWidth * window.devicePixelRatio * 2,
+    containerHeight * window.devicePixelRatio * 2,
   );
   fxaaPass.material.uniforms["resolution"].value.x =
-    1 / (containerWidth * window.devicePixelRatio);
+    1 / (containerWidth * window.devicePixelRatio * 2);
   fxaaPass.material.uniforms["resolution"].value.y =
-    1 / (containerHeight * window.devicePixelRatio);
+    1 / (containerHeight * window.devicePixelRatio * 2);
 
   // Texture used to carry depth data
-  const texWidth = containerWidth * window.devicePixelRatio;
-  const texHeight = containerHeight * window.devicePixelRatio;
+  const texWidth = containerWidth * window.devicePixelRatio * 2;
+  const texHeight = containerHeight * window.devicePixelRatio * 2;
   const depthTexture = new THREE.DepthTexture(texWidth, texHeight);
   depthRenderTarget.depthTexture = depthTexture;
 
