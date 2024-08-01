@@ -406,7 +406,7 @@ const computeProjectedBounds = (
 
   // Iterate over all verticies in the model, keeping track of the min/max values of
   // projection (onto camera plane)
-  for (let i = 0; i < verticies.count / verticies.itemSize; i++) {
+  for (let i = 0; i < verticies.count; i++) {
     // Load vertex & move to world coordinates (position & rotation)
     vertex.fromArray(verticies.array, i * verticies.itemSize);
     vertex.applyMatrix4(matrixWorld);
