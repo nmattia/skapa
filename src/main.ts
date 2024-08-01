@@ -6,11 +6,12 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import type { Manifold } from "manifold-3d";
 
 import vertexShader from "./vert.glsl?raw";
 import fragmentShader from "./frag.glsl?raw";
 
-import { myModel } from "./model";
+import { box, base, clips } from "./model";
 import { exportManifold, mesh2geometry } from "./3mfExport";
 import { Animate } from "./animate";
 
@@ -30,6 +31,27 @@ const START_WIDTH = 40;
 const START_DEPTH = 30;
 
 const canvas = document.querySelector("canvas")!;
+
+// The positions of the clips, as X/Y on the side of the box
+const CLIPS_POSITIONS: Array<[number, number]> = [[0, 0]];
+
+// A 3MF loader, that loads the Manifold and makes it available as a 3MF Blob when ready
+class TMFLoader {
+  // The exported manifold, when reading
+  private tmf: undefined | Blob;
+
+  constructor(manifold: Promise<Manifold>) {
+    manifold.then((manifold) => {
+      this.tmf = exportManifold(manifold);
+    });
+  }
+
+  get(): undefined | Blob {
+    return this.tmf;
+  }
+}
+
+let tmfLoader: undefined | TMFLoader;
 
 // Overflow value (canvas overflowing outside of container)
 // that seems to accomodate part overflow for most dimensions
@@ -63,6 +85,9 @@ camera.lookAt(300, 300, 0);
 const scene = new THREE.Scene();
 
 const material = new THREE.MeshBasicMaterial({});
+
+// The animated rotation
+const rotation = new Animate(0);
 
 let reloadModelNeeded = true;
 const mesh: THREE.Mesh = new THREE.Mesh(
@@ -165,9 +190,6 @@ function resizeCanvas() {
 
 let resizeCanvasNeeded = true;
 
-// The animated rotation
-const rotation = new Animate(0);
-
 // The animated dimensions
 const animations = {
   height: new Animate(START_HEIGHT),
@@ -177,6 +199,18 @@ const animations = {
 
 function animate(nowMillis: DOMHighResTimeStamp) {
   requestAnimationFrame(animate);
+
+  // Reload 3mf if necessary
+  if (tmfLoader !== undefined) {
+    const newTmf = tmfLoader.get();
+    if (newTmf !== undefined) {
+      // Ensure we load the object only once
+      tmfLoader = undefined;
+
+      // Update the download link
+      link.href = URL.createObjectURL(newTmf);
+    }
+  }
 
   // Handle rotation animation
   const rotationUpdated = rotation.update();
@@ -298,13 +332,20 @@ dimensionType.addListener((dity) => {
     inputs[dim].value = dimensionsInner[dim].latest + delta + "";
   });
 });
-dimensionType.send(dimensionType.latest); // Need to trigger the initial value
 
 DIMENSIONS.forEach((dim) =>
   dimensionsInner[dim].addListener((val) =>
     animations[dim].startAnimationTo(val),
   ),
 );
+
+Dyn.zip3(
+  dimensionsInner["height"],
+  dimensionsInner["width"],
+  dimensionsInner["depth"],
+).addListener(([h, w, d]) => {
+  tmfLoader = new TMFLoader(box(h, w, d, CLIPS_POSITIONS));
+});
 
 // Add change events to all dimension inputs
 DIMENSIONS.forEach((dim) => {
@@ -320,14 +361,23 @@ DIMENSIONS.forEach((dim) => {
 // to undefined when the model has finished loading
 let modelLoadStarted: undefined | DOMHighResTimeStamp;
 
+// Reloads the model seen on page
 async function reloadModel(height: number, width: number, depth: number) {
-  const model = await myModel(height, width, depth);
+  const model = await base(height, width, depth);
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
-  const stlBlob = exportManifold(model);
-  const stlUrl = URL.createObjectURL(stlBlob);
-  link.href = stlUrl;
+  mesh.clear(); // Remove all children
+
+  // Add the 2 clips (left & right)
+  const lr = await clips();
+  for (const clip of lr) {
+    const g = mesh2geometry(clip);
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, material);
+    m.position.y = -depth / 2;
+    mesh.add(m);
+  }
 }
 
 // Compute min & max of the verticies' projection onto the camera plane (coordinates in the

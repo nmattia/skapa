@@ -16,8 +16,11 @@ export class Dyn<A> {
     this.send(initial); // latest will be set twice but we don't care
   }
 
-  addListener(f: (a: A) => void) {
+  addListener(f: (a: A) => void, updateNow = true) {
     this.listeners.push(f);
+    if (updateNow) {
+      f(this.latest);
+    }
   }
 
   send(a: A) {
@@ -29,9 +32,9 @@ export class Dyn<A> {
 
   static zip3<A, B, C>(a: Dyn<A>, b: Dyn<B>, c: Dyn<C>): Dyn<[A, B, C]> {
     const zipped = new Dyn<[A, B, C]>([a.latest, b.latest, c.latest]);
-    a.addListener((v: A) => zipped.send([v, b.latest, c.latest]));
-    b.addListener((v: B) => zipped.send([a.latest, v, c.latest]));
-    c.addListener((v: C) => zipped.send([a.latest, b.latest, v]));
+    a.addListener((v: A) => zipped.send([v, b.latest, c.latest]), false);
+    b.addListener((v: B) => zipped.send([a.latest, v, c.latest]), false);
+    c.addListener((v: C) => zipped.send([a.latest, b.latest, v]), false);
 
     return zipped;
   }

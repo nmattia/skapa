@@ -95,15 +95,15 @@ async function clipRCrossSection(): Promise<CrossSection> {
 }
 
 // The skadis clips, starting at the origin and pointing in -Z
-async function clips(): Promise<[Manifold, Manifold]> {
+export async function clips(): Promise<[Manifold, Manifold]> {
   const clipR = (await clipRCrossSection()).extrude(10);
   const clipL = (await clipRCrossSection()).mirror([1, 0]).extrude(10);
 
   return [clipR, clipL];
 }
 
-// The box (with clips), with origin where clips meet the box
-export async function myModel(
+// The box (without clips) with origin in the middle of the bottom face
+export async function base(
   height: number,
   width: number,
   depth: number,
@@ -112,7 +112,7 @@ export async function myModel(
   const wallThickness = 2;
   const bottomThickness = 3;
   const innerRadius = Math.max(0, outerRadius - wallThickness);
-  const base = (await roundedRectangle([width, depth], outerRadius)).extrude(
+  const outer = (await roundedRectangle([width, depth], outerRadius)).extrude(
     height,
   );
   const innerNeg = (
@@ -124,13 +124,23 @@ export async function myModel(
     .extrude(height - bottomThickness)
     .translate([0, 0, 5]);
 
-  const box = base.subtract(innerNeg);
+  return outer.subtract(innerNeg);
+}
 
-  let res = box;
+// The box (with clips), with origin where clips meet the box
+export async function box(
+  height: number,
+  width: number,
+  depth: number,
+  clipsPositions: Array<[number, number]> /* X & Y in the side plane */,
+): Promise<Manifold> {
+  let res = await base(height, width, depth);
   const [clipL, clipR] = await clips();
 
-  res = res.add(clipL.translate(0, -depth / 2, 0));
-  res = res.add(clipR.translate(0, -depth / 2, 0));
+  for (const [x, y] of clipsPositions) {
+    res = res.add(clipL.translate(x, -depth / 2, y));
+    res = res.add(clipR.translate(x, -depth / 2, y));
+  }
 
   return res;
 }
