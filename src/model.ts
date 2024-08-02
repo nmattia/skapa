@@ -107,12 +107,12 @@ export async function base(
   height: number,
   width: number,
   depth: number,
+  radius: number,
 ): Promise<Manifold> {
-  const outerRadius = 5;
   const wallThickness = 2;
   const bottomThickness = 3;
-  const innerRadius = Math.max(0, outerRadius - wallThickness);
-  const outer = (await roundedRectangle([width, depth], outerRadius)).extrude(
+  const innerRadius = Math.max(0, radius - wallThickness);
+  const outer = (await roundedRectangle([width, depth], radius)).extrude(
     height,
   );
   const innerNeg = (
@@ -132,9 +132,10 @@ export async function box(
   height: number,
   width: number,
   depth: number,
+  radius: number,
   clipsPositions: Array<[number, number]> /* X & Y in the side plane */,
 ): Promise<Manifold> {
-  let res = await base(height, width, depth);
+  let res = await base(height, width, depth, radius);
   const [clipL, clipR] = await clips();
 
   for (const [x, y] of clipsPositions) {

@@ -24,11 +24,12 @@ link.download = "skadis-box.3mf";
 
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
-const DIMENSIONS = ["height", "width", "depth"] as const;
+const DIMENSIONS = ["height", "width", "depth", "radius"] as const;
 
 const START_HEIGHT = 20;
 const START_WIDTH = 40;
 const START_DEPTH = 30;
+const START_RADIUS = 6;
 
 const canvas = document.querySelector("canvas")!;
 
@@ -195,6 +196,7 @@ const animations = {
   height: new Animate(START_HEIGHT),
   width: new Animate(START_WIDTH),
   depth: new Animate(START_DEPTH),
+  radius: new Animate(START_RADIUS),
 };
 
 function animate(nowMillis: DOMHighResTimeStamp) {
@@ -241,6 +243,7 @@ function animate(nowMillis: DOMHighResTimeStamp) {
       animations["height"].current,
       animations["width"].current,
       animations["depth"].current,
+      animations["radius"].current,
     ).then(() => {
       modelLoadStarted = undefined;
       centerCameraNeeded = true;
@@ -300,6 +303,7 @@ const dimensionsInner = {
   height: new Dyn(START_HEIGHT),
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
+  radius: new Dyn(START_RADIUS),
 };
 
 // Initialize inputs
@@ -323,6 +327,7 @@ const inputs = {
   height: document.querySelector("#height")! as HTMLInputElement,
   width: document.querySelector("#width")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
+  radius: document.querySelector("#radius")! as HTMLInputElement,
 } as const;
 
 dimensionType.addListener((dity) => {
@@ -339,12 +344,13 @@ DIMENSIONS.forEach((dim) =>
   ),
 );
 
-Dyn.zip3(
+Dyn.zip4(
   dimensionsInner["height"],
   dimensionsInner["width"],
   dimensionsInner["depth"],
-).addListener(([h, w, d]) => {
-  tmfLoader = new TMFLoader(box(h, w, d, CLIPS_POSITIONS));
+  dimensionsInner["radius"],
+).addListener(([h, w, d, r]) => {
+  tmfLoader = new TMFLoader(box(h, w, d, r, CLIPS_POSITIONS));
 });
 
 // Add change events to all dimension inputs
@@ -362,8 +368,13 @@ DIMENSIONS.forEach((dim) => {
 let modelLoadStarted: undefined | DOMHighResTimeStamp;
 
 // Reloads the model seen on page
-async function reloadModel(height: number, width: number, depth: number) {
-  const model = await base(height, width, depth);
+async function reloadModel(
+  height: number,
+  width: number,
+  depth: number,
+  radius: number,
+) {
+  const model = await base(height, width, depth, radius);
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
