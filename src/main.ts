@@ -26,9 +26,9 @@ THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
 const DIMENSIONS = ["height", "width", "depth", "radius"] as const;
 
-const START_HEIGHT = 20;
-const START_WIDTH = 40;
-const START_DEPTH = 30;
+const START_HEIGHT = 23;
+const START_WIDTH = 43;
+const START_DEPTH = 33;
 const START_RADIUS = 6;
 
 const canvas = document.querySelector("canvas")!;
@@ -299,7 +299,8 @@ function animate(nowMillis: DOMHighResTimeStamp) {
 // Initialize state
 const dimensionType = new Dyn<"inner" | "outer">("inner");
 
-const dimensionsInner = {
+// OUTER dimensions
+const dimensions = {
   height: new Dyn(START_HEIGHT),
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
@@ -331,24 +332,22 @@ const inputs = {
 } as const;
 
 dimensionType.addListener((dity) => {
-  const delta = ({ inner: 0, outer: 3 } as const)[dity];
+  const delta = ({ inner: -3, outer: 0 } as const)[dity];
 
   DIMENSIONS.forEach((dim) => {
-    inputs[dim].value = dimensionsInner[dim].latest + delta + "";
+    inputs[dim].value = dimensions[dim].latest + delta + "";
   });
 });
 
 DIMENSIONS.forEach((dim) =>
-  dimensionsInner[dim].addListener((val) =>
-    animations[dim].startAnimationTo(val),
-  ),
+  dimensions[dim].addListener((val) => animations[dim].startAnimationTo(val)),
 );
 
 Dyn.zip4(
-  dimensionsInner["height"],
-  dimensionsInner["width"],
-  dimensionsInner["depth"],
-  dimensionsInner["radius"],
+  dimensions["height"],
+  dimensions["width"],
+  dimensions["depth"],
+  dimensions["radius"],
 ).addListener(([h, w, d, r]) => {
   tmfLoader = new TMFLoader(box(h, w, d, r, CLIPS_POSITIONS));
 });
@@ -357,9 +356,9 @@ Dyn.zip4(
 DIMENSIONS.forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
     const dity = dimensionType.latest;
-    const delta = ({ inner: 0, outer: 3 } as const)[dity];
+    const delta = ({ inner: -3, outer: 0 } as const)[dity];
     const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) dimensionsInner[dim].send(value - delta);
+    if (!Number.isNaN(value)) dimensions[dim].send(value - delta);
   });
 });
 
