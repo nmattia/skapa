@@ -65,8 +65,11 @@ void main() {
 
     float depth = texture2D(tDepth, vUv).x;
 
-    gl_FragColor.rgb = 1.0 - vec3(edge);
     // Make alpha transparent if depth == 1 (hitting far plane) UNLESS
     // we are drawing an edge
-    gl_FragColor.a = 1.0 - step(1.0, depth) + edge;
+    float alpha = 1.0 - step(1.0, depth) + edge;
+
+    // Color which we premultiply with alpha
+    gl_FragColor.rgb = (1.0 - vec3(edge)) * alpha;
+    gl_FragColor.a = alpha;
 }
