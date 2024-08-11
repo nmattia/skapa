@@ -71,6 +71,94 @@ export class Dyn<A> {
     return zipped;
   }
 
+  static zip5<A, B, C, D, E>(
+    a: Dyn<A>,
+    b: Dyn<B>,
+    c: Dyn<C>,
+    d: Dyn<D>,
+    e: Dyn<E>,
+  ): Dyn<[A, B, C, D, E]> {
+    const zipped = new Dyn<[A, B, C, D, E]>([
+      a.latest,
+      b.latest,
+      c.latest,
+      d.latest,
+      e.latest,
+    ]);
+    a.addListener(
+      (v: A) => zipped.send([v, b.latest, c.latest, d.latest, e.latest]),
+      false,
+    );
+    b.addListener(
+      (v: B) => zipped.send([a.latest, v, c.latest, d.latest, e.latest]),
+      false,
+    );
+    c.addListener(
+      (v: C) => zipped.send([a.latest, b.latest, v, d.latest, e.latest]),
+      false,
+    );
+    d.addListener(
+      (v: D) => zipped.send([a.latest, b.latest, c.latest, v, e.latest]),
+      false,
+    );
+    e.addListener(
+      (v: E) => zipped.send([a.latest, b.latest, c.latest, d.latest, v]),
+      false,
+    );
+
+    return zipped;
+  }
+
+  static zip6<A, B, C, D, E, F>(
+    a: Dyn<A>,
+    b: Dyn<B>,
+    c: Dyn<C>,
+    d: Dyn<D>,
+    e: Dyn<E>,
+    f: Dyn<F>,
+  ): Dyn<[A, B, C, D, E, F]> {
+    const zipped = new Dyn<[A, B, C, D, E, F]>([
+      a.latest,
+      b.latest,
+      c.latest,
+      d.latest,
+      e.latest,
+      f.latest,
+    ]);
+    a.addListener(
+      (v: A) =>
+        zipped.send([v, b.latest, c.latest, d.latest, e.latest, f.latest]),
+      false,
+    );
+    b.addListener(
+      (v: B) =>
+        zipped.send([a.latest, v, c.latest, d.latest, e.latest, f.latest]),
+      false,
+    );
+    c.addListener(
+      (v: C) =>
+        zipped.send([a.latest, b.latest, v, d.latest, e.latest, f.latest]),
+      false,
+    );
+    d.addListener(
+      (v: D) =>
+        zipped.send([a.latest, b.latest, c.latest, v, e.latest, f.latest]),
+      false,
+    );
+    e.addListener(
+      (v: E) =>
+        zipped.send([a.latest, b.latest, c.latest, d.latest, v, f.latest]),
+      false,
+    );
+    f.addListener(
+      (v: F) =>
+        zipped.send([a.latest, b.latest, c.latest, d.latest, e.latest, v]),
+      false,
+    );
+
+    return zipped;
+  }
+
   // How the mapped chan should handle the value
   protected __handleMapOpts<B>(
     opts: ((a: A) => B) | { f: (a: A) => B | typeof Dyn.unchanged; def: B },

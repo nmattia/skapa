@@ -24,12 +24,21 @@ link.download = "skadis-box.3mf";
 
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
-const DIMENSIONS = ["height", "width", "depth", "radius"] as const;
+const DIMENSIONS = [
+  "height",
+  "width",
+  "depth",
+  "radius",
+  "wall",
+  "bottom",
+] as const;
 
 const START_HEIGHT = 23;
 const START_WIDTH = 43;
 const START_DEPTH = 33;
 const START_RADIUS = 6;
+const START_WALL = 2;
+const START_BOTTOM = 3;
 
 const canvas = document.querySelector("canvas")!;
 
@@ -197,6 +206,8 @@ const animations = {
   width: new Animate(START_WIDTH),
   depth: new Animate(START_DEPTH),
   radius: new Animate(START_RADIUS),
+  wall: new Animate(START_WALL),
+  bottom: new Animate(START_BOTTOM),
 };
 
 function animate(nowMillis: DOMHighResTimeStamp) {
@@ -244,6 +255,8 @@ function animate(nowMillis: DOMHighResTimeStamp) {
       animations["width"].current,
       animations["depth"].current,
       animations["radius"].current,
+      animations["wall"].current,
+      animations["bottom"].current,
     ).then(() => {
       modelLoadStarted = undefined;
       centerCameraNeeded = true;
@@ -305,6 +318,8 @@ const dimensions = {
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
   radius: new Dyn(START_RADIUS),
+  wall: new Dyn(START_WALL),
+  bottom: new Dyn(START_BOTTOM),
 };
 
 // Initialize inputs
@@ -329,13 +344,28 @@ const inputs = {
   width: document.querySelector("#width")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
   radius: document.querySelector("#radius")! as HTMLInputElement,
+  wall: document.querySelector("#wall")! as HTMLInputElement,
+  bottom: document.querySelector("#bottom")! as HTMLInputElement,
 } as const;
 
+// When dimensions type is updated, update the inputs that depend on the dim type
 dimensionType.addListener((dity) => {
-  const delta = ({ inner: -3, outer: 0 } as const)[dity];
-
-  DIMENSIONS.forEach((dim) => {
+  (["height"] as const).forEach((dim) => {
+    const delta = ({ inner: -1 * dimensions.bottom.latest, outer: 0 } as const)[
+      dity
+    ];
     inputs[dim].value = dimensions[dim].latest + delta + "";
+  });
+
+  (["width", "depth", "radius"] as const).forEach((dim) => {
+    const delta = ({ inner: -1 * dimensions.wall.latest, outer: 0 } as const)[
+      dity
+    ];
+    inputs[dim].value = dimensions[dim].latest + delta + "";
+  });
+
+  (["wall", "bottom"] as const).forEach((dim) => {
+    inputs[dim].value = dimensions[dim].latest + "";
   });
 });
 
@@ -343,22 +373,38 @@ DIMENSIONS.forEach((dim) =>
   dimensions[dim].addListener((val) => animations[dim].startAnimationTo(val)),
 );
 
-Dyn.zip4(
+Dyn.zip6(
   dimensions["height"],
   dimensions["width"],
   dimensions["depth"],
   dimensions["radius"],
-).addListener(([h, w, d, r]) => {
-  tmfLoader = new TMFLoader(box(h, w, d, r, CLIPS_POSITIONS));
+  dimensions["wall"],
+  dimensions["bottom"],
+).addListener(([h, w, d, r, wa, bo]) => {
+  tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo, CLIPS_POSITIONS));
 });
 
 // Add change events to all dimension inputs
-DIMENSIONS.forEach((dim) => {
+inputs.height.addEventListener("change", () => {
+  const dity = dimensionType.latest;
+  const inner = -1 * dimensions.bottom.latest;
+  const delta = ({ inner, outer: 0 } as const)[dity];
+  const value = parseInt(inputs.height.value);
+  if (!Number.isNaN(value)) dimensions.height.send(value - delta);
+});
+(["width", "depth", "radius"] as const).forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
     const dity = dimensionType.latest;
-    const delta = ({ inner: -3, outer: 0 } as const)[dity];
+    const inner = -1 * dimensions.wall.latest;
+    const delta = ({ inner, outer: 0 } as const)[dity];
     const value = parseInt(inputs[dim].value);
     if (!Number.isNaN(value)) dimensions[dim].send(value - delta);
+  });
+});
+(["wall", "bottom"] as const).forEach((dim) => {
+  inputs[dim].addEventListener("change", () => {
+    const value = parseInt(inputs[dim].value);
+    if (!Number.isNaN(value)) dimensions[dim].send(value);
   });
 });
 
@@ -372,8 +418,10 @@ async function reloadModel(
   width: number,
   depth: number,
   radius: number,
+  wall: number,
+  bottom: number,
 ) {
-  const model = await base(height, width, depth, radius);
+  const model = await base(height, width, depth, radius, wall, bottom);
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
