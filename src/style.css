@@ -5,6 +5,7 @@
 body {
   max-width: 600px;
   margin: auto;
+  padding: 1em;
 }
 @media (width > 900px) {
   body {
