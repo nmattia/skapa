@@ -373,14 +373,14 @@ DIMENSIONS.forEach((dim) =>
   dimensions[dim].addListener((val) => animations[dim].startAnimationTo(val)),
 );
 
-Dyn.zip6(
+Dyn.sequence([
   dimensions["height"],
   dimensions["width"],
   dimensions["depth"],
   dimensions["radius"],
   dimensions["wall"],
   dimensions["bottom"],
-).addListener(([h, w, d, r, wa, bo]) => {
+] as const).addListener(([h, w, d, r, wa, bo]) => {
   tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo, CLIPS_POSITIONS));
 });
 
