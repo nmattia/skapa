@@ -250,6 +250,7 @@ function animate(nowMillis: DOMHighResTimeStamp) {
 
   if (reloadModelNow) {
     modelLoadStarted = nowMillis;
+    reloadModelNeeded = false;
     reloadModel(
       animations["height"].current,
       animations["width"].current,
@@ -261,7 +262,6 @@ function animate(nowMillis: DOMHighResTimeStamp) {
       modelLoadStarted = undefined;
       centerCameraNeeded = true;
     });
-    reloadModelNeeded = false;
   }
 
   // Sanity check
@@ -312,8 +312,8 @@ function animate(nowMillis: DOMHighResTimeStamp) {
 // Initialize state
 const dimensionType = new Dyn<"inner" | "outer">("inner");
 
-// OUTER dimensions
-const dimensions = {
+// OUTER dimensions (target)
+const targetDimensions = {
   height: new Dyn(START_HEIGHT),
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
@@ -351,35 +351,38 @@ const inputs = {
 // When dimensions type is updated, update the inputs that depend on the dim type
 dimensionType.addListener((dity) => {
   (["height"] as const).forEach((dim) => {
-    const delta = ({ inner: -1 * dimensions.bottom.latest, outer: 0 } as const)[
-      dity
-    ];
-    inputs[dim].value = dimensions[dim].latest + delta + "";
+    const delta = (
+      { inner: -1 * targetDimensions.bottom.latest, outer: 0 } as const
+    )[dity];
+    inputs[dim].value = targetDimensions[dim].latest + delta + "";
   });
 
   (["width", "depth", "radius"] as const).forEach((dim) => {
-    const delta = ({ inner: -1 * dimensions.wall.latest, outer: 0 } as const)[
-      dity
-    ];
-    inputs[dim].value = dimensions[dim].latest + delta + "";
+    const delta = (
+      { inner: -1 * targetDimensions.wall.latest, outer: 0 } as const
+    )[dity];
+    inputs[dim].value = targetDimensions[dim].latest + delta + "";
   });
 
   (["wall", "bottom"] as const).forEach((dim) => {
-    inputs[dim].value = dimensions[dim].latest + "";
+    inputs[dim].value = targetDimensions[dim].latest + "";
   });
 });
 
 DIMENSIONS.forEach((dim) =>
-  dimensions[dim].addListener((val) => animations[dim].startAnimationTo(val)),
+  targetDimensions[dim].addListener((val) => {
+    animations[dim].startAnimationTo(val);
+  }),
 );
 
+// when target dimensions are changed, update the model to download
 Dyn.sequence([
-  dimensions["height"],
-  dimensions["width"],
-  dimensions["depth"],
-  dimensions["radius"],
-  dimensions["wall"],
-  dimensions["bottom"],
+  targetDimensions["height"],
+  targetDimensions["width"],
+  targetDimensions["depth"],
+  targetDimensions["radius"],
+  targetDimensions["wall"],
+  targetDimensions["bottom"],
 ] as const).addListener(([h, w, d, r, wa, bo]) => {
   tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo, CLIPS_POSITIONS));
 });
@@ -387,24 +390,24 @@ Dyn.sequence([
 // Add change events to all dimension inputs
 inputs.height.addEventListener("change", () => {
   const dity = dimensionType.latest;
-  const inner = -1 * dimensions.bottom.latest;
+  const inner = -1 * targetDimensions.bottom.latest;
   const delta = ({ inner, outer: 0 } as const)[dity];
   const value = parseInt(inputs.height.value);
-  if (!Number.isNaN(value)) dimensions.height.send(value - delta);
+  if (!Number.isNaN(value)) targetDimensions.height.send(value - delta);
 });
 (["width", "depth", "radius"] as const).forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
     const dity = dimensionType.latest;
-    const inner = -1 * dimensions.wall.latest;
+    const inner = -1 * targetDimensions.wall.latest;
     const delta = ({ inner, outer: 0 } as const)[dity];
     const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) dimensions[dim].send(value - delta);
+    if (!Number.isNaN(value)) targetDimensions[dim].send(value - delta);
   });
 });
 (["wall", "bottom"] as const).forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
     const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) dimensions[dim].send(value);
+    if (!Number.isNaN(value)) targetDimensions[dim].send(value);
   });
 });
 
