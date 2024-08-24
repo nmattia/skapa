@@ -455,12 +455,9 @@ const computeProjectedBounds = (
 
   // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
   // to the far. For that reason some calculations for far & near are flipped.
-  let left = Infinity;
-  let right = -Infinity;
-  let top = -Infinity;
-  let bottom = Infinity;
-  let far = -Infinity;
-  let near = Infinity;
+  let [left, right] = [Infinity, -Infinity];
+  let [top, bottom] = [-Infinity, Infinity];
+  let [near, far] = [Infinity, -Infinity];
 
   // Iterate over all verticies in the model, keeping track of the min/max values of
   // projection (onto camera plane)
@@ -477,8 +474,8 @@ const computeProjectedBounds = (
     right = Math.max(right, v.x);
     top = Math.max(top, v.y);
     bottom = Math.min(bottom, v.y);
-    far = Math.max(far, -v.z);
     near = Math.min(near, -v.z);
+    far = Math.max(far, -v.z);
   }
 
   return { left, right, top, bottom, near, far };
