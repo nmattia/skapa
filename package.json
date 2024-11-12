@@ -20,5 +20,8 @@
     "manifold-3d": "2.5.1",
     "prettier": "3.3.3",
     "three": "0.170.0"
+  },
+  "optionalDependencies": {
+      "@esbuild/linux-x64":"*"
   }
 }
