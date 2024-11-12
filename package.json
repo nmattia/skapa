@@ -10,16 +10,18 @@
     "format": "prettier ./src ./index.html -w"
   },
   "devDependencies": {
-    "@types/three": "^0.166.0",
-    "typescript": "^5.5.2",
-    "vite": "^5.3.2",
-    "vite-tsconfig-paths": "^4.3.2"
+    "@types/three": "0.170.0",
+    "typescript": "5.6.3",
+    "vite": "5.4.11"
   },
   "dependencies": {
-    "@jscadui/3mf-export": "^0.5.0",
-    "fflate": "^0.8.2",
-    "manifold-3d": "^2.5.1",
-    "prettier": "^3.2.5",
-    "three": "^0.166.0"
+    "@jscadui/3mf-export": "0.5.0",
+    "fflate": "0.8.2",
+    "manifold-3d": "2.5.1",
+    "prettier": "3.3.3",
+    "three": "0.170.0"
+  },
+  "optionalDependencies": {
+      "@esbuild/linux-x64":"*"
   }
 }
