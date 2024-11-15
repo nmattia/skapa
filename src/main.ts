@@ -5,6 +5,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { FXAAPass } from "./FXAAPass";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderOutlinePass } from "./RenderOutlinePass";
+import { ThickenPass } from "./ThickenPass";
 import type { Manifold } from "manifold-3d";
 
 import { box, base, clips } from "./model";
@@ -123,6 +124,9 @@ const renderOutlinePass = new RenderOutlinePass(
   lastContainerHeight,
 );
 composer.addPass(renderOutlinePass);
+
+const thickenPass = new ThickenPass(lastContainerWidth, lastContainerHeight);
+composer.addPass(thickenPass);
 
 // By default, EffectComposer has an implicit rendering pass at the end.
 // However here we perform the OutputPass explicitly so that we can
