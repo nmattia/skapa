@@ -62,7 +62,6 @@ void main() {
     float edgeNormal = computeEdgeNormal(cr);
 
     float edge = max(edgeDepth, edgeNormal);
-
     float depth = texture2D(tDepth, vUv).x;
 
     // Make alpha transparent if depth == 1 (hitting far plane) UNLESS
