@@ -2,14 +2,10 @@ import "./style.css";
 
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
-import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
+import { FXAAPass } from "./FXAAPass";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RenderOutlinePass } from "./RenderOutlinePass";
 import type { Manifold } from "manifold-3d";
-
-import vertexShader from "./vert.glsl?raw";
-import fragmentShader from "./frag.glsl?raw";
 
 import { box, base, clips } from "./model";
 import { exportManifold, mesh2geometry } from "./3mfExport";
@@ -22,6 +18,7 @@ const link = document.querySelector("a")!;
 link.innerText = "Download";
 link.download = "skadis-box.3mf";
 
+// Align axes with 3D printer
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
 
 const DIMENSIONS = [
@@ -77,11 +74,6 @@ const renderer = new THREE.WebGLRenderer({
 const renderTarget = new THREE.WebGLRenderTarget();
 const composer = new EffectComposer(renderer, renderTarget);
 
-// Render targets for depth & normals
-const depthRenderTarget = new THREE.WebGLRenderTarget();
-const normalRenderTarget = new THREE.WebGLRenderTarget();
-const normalMaterial = new THREE.MeshNormalMaterial();
-
 // Setup camera on front wall, looking at the back wall
 const camera = new THREE.OrthographicCamera();
 
@@ -118,27 +110,19 @@ document.querySelector("#flip")!.addEventListener("click", () => {
 
 scene.add(mesh);
 
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-const depthShader = {
-  uniforms: {
-    tDepth: { value: null },
-    tNormal: { value: null },
-    texelSize: { value: null },
-  },
-  vertexShader,
-  fragmentShader,
-};
-
-const depthPass = new ShaderPass(depthShader);
-composer.addPass(depthPass);
-
 const container = document.querySelector("#canvas-container")!;
 
 // The container width & height used in computations last time we resized
 let lastContainerWidth = container.clientWidth;
 let lastContainerHeight = container.clientHeight;
+
+const renderOutlinePass = new RenderOutlinePass(
+  scene,
+  camera,
+  lastContainerWidth,
+  lastContainerHeight,
+);
+composer.addPass(renderOutlinePass);
 
 // By default, EffectComposer has an implicit rendering pass at the end.
 // However here we perform the OutputPass explicitly so that we can
@@ -146,7 +130,7 @@ let lastContainerHeight = container.clientHeight;
 const outputPass = new OutputPass();
 composer.addPass(outputPass);
 
-const fxaaPass = new ShaderPass(FXAAShader);
+const fxaaPass = new FXAAPass();
 composer.addPass(fxaaPass);
 
 function resizeCanvas() {
@@ -159,43 +143,15 @@ function resizeCanvas() {
   // Update global aspect ratio
   aspectRatio = containerWidth / containerHeight;
 
-  renderer.setPixelRatio(window.devicePixelRatio);
+  // Set the sizes of the various render targets (taking pixel ratio into account)
+  // (multiplying everything by 2 to get better resolution and precision at the cost
+  // of more work)
+  composer.setPixelRatio(window.devicePixelRatio);
+  composer.setSize(containerWidth * 2, containerHeight * 2);
 
   // this sets width= and height= in HTML
-  renderer.setSize(containerWidth, containerHeight, false);
-
-  // Set the sizes of the various render targets (taking pixel ratio into account)
-  // (multiplying every by 2 to get better resolution and precision at the cost
-  // of more work)
-  composer.setSize(
-    containerWidth * window.devicePixelRatio * 2,
-    containerHeight * window.devicePixelRatio * 2,
-  );
-  depthRenderTarget.setSize(
-    containerWidth * window.devicePixelRatio * 2,
-    containerHeight * window.devicePixelRatio * 2,
-  );
-  normalRenderTarget.setSize(
-    containerWidth * window.devicePixelRatio * 2,
-    containerHeight * window.devicePixelRatio * 2,
-  );
-  fxaaPass.material.uniforms["resolution"].value.x =
-    1 / (containerWidth * window.devicePixelRatio * 2);
-  fxaaPass.material.uniforms["resolution"].value.y =
-    1 / (containerHeight * window.devicePixelRatio * 2);
-
-  // Texture used to carry depth data
-  const texWidth = containerWidth * window.devicePixelRatio * 2;
-  const texHeight = containerHeight * window.devicePixelRatio * 2;
-  const depthTexture = new THREE.DepthTexture(texWidth, texHeight);
-  depthRenderTarget.depthTexture = depthTexture;
-
-  depthPass.uniforms.tNormal.value = normalRenderTarget.texture;
-  depthPass.uniforms.tDepth.value = depthTexture;
-  depthPass.uniforms.texelSize.value = new THREE.Vector2(
-    1 / texWidth,
-    1 / texHeight,
-  );
+  composer.renderer.setPixelRatio(window.devicePixelRatio);
+  composer.renderer.setSize(containerWidth * 2, containerHeight * 2, false);
 }
 
 let resizeCanvasNeeded = true;
@@ -289,23 +245,6 @@ function animate(nowMillis: DOMHighResTimeStamp) {
     centerCameraNeeded = false;
   }
 
-  // Render once for depth
-  renderer.setRenderTarget(depthRenderTarget);
-  renderer.render(scene, camera);
-
-  // Render once for normals
-
-  // Temporarily swap all materials for the normal material
-  const oldMat = scene.overrideMaterial;
-  scene.overrideMaterial = normalMaterial;
-
-  renderer.setRenderTarget(normalRenderTarget);
-  renderer.render(scene, camera);
-
-  // Revert override
-  scene.overrideMaterial = oldMat;
-
-  // Render to screen
   composer.render();
 }
 
