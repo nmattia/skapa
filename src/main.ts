@@ -1,11 +1,7 @@
 import "./style.css";
 
 import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { FXAAPass } from "./FXAAPass";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { RenderOutlinePass } from "./RenderOutlinePass";
-import { ThickenPass } from "./ThickenPass";
+import { Renderer } from "./rendering/renderer";
 import type { Manifold } from "manifold-3d";
 
 import { box, base, clips } from "./model";
@@ -38,8 +34,6 @@ const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
-const canvas = document.querySelector("canvas")!;
-
 // The positions of the clips, as X/Y on the side of the box
 const CLIPS_POSITIONS: Array<[number, number]> = [[0, 0]];
 
@@ -61,38 +55,8 @@ class TMFLoader {
 
 let tmfLoader: undefined | TMFLoader;
 
-// Overflow value (canvas overflowing outside of container)
-// that seems to accomodate part overflow for most dimensions
-const canvasOverflowPercent = 0.15;
-canvas.style.setProperty("--overflow", canvasOverflowPercent * 100 + "%");
-
-// Rendering setup
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  canvas,
-});
-
-const renderTarget = new THREE.WebGLRenderTarget();
-const composer = new EffectComposer(renderer, renderTarget);
-
-// Setup camera on front wall, looking at the back wall
-const camera = new THREE.OrthographicCamera();
-
-camera.position.x = 0;
-camera.position.y = 0;
-camera.position.z = 300;
-
-camera.lookAt(300, 300, 0);
-
-// Scene & objects
-const scene = new THREE.Scene();
-
-const material = new THREE.MeshBasicMaterial({});
-
-// The animated rotation
-const rotation = new Animate(0);
-
-let reloadModelNeeded = true;
+// We don't actually use the material but three needs it
+const material = new THREE.Material();
 const mesh: THREE.Mesh = new THREE.Mesh(
   new THREE.BoxGeometry(START_WIDTH, START_HEIGHT, START_DEPTH),
   material,
@@ -101,6 +65,13 @@ const mesh: THREE.Mesh = new THREE.Mesh(
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
 
+const renderer = new Renderer(document.querySelector("canvas")!, mesh);
+
+let reloadModelNeeded = true;
+
+// The animated rotation
+const rotation = new Animate(0);
+
 // When true, the back of the object should be shown
 const showBack = new Dyn(false);
 showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
@@ -108,57 +79,6 @@ showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
 document.querySelector("#flip")!.addEventListener("click", () => {
   showBack.send(!showBack.latest);
 });
-
-scene.add(mesh);
-
-const container = document.querySelector("#canvas-container")!;
-
-// The container width & height used in computations last time we resized
-let lastContainerWidth = container.clientWidth;
-let lastContainerHeight = container.clientHeight;
-
-const renderOutlinePass = new RenderOutlinePass(
-  scene,
-  camera,
-  lastContainerWidth,
-  lastContainerHeight,
-);
-composer.addPass(renderOutlinePass);
-
-const thickenPass = new ThickenPass(lastContainerWidth, lastContainerHeight);
-composer.addPass(thickenPass);
-
-// By default, EffectComposer has an implicit rendering pass at the end.
-// However here we perform the OutputPass explicitly so that we can
-// add an FXAA pass _after_.
-const outputPass = new OutputPass();
-composer.addPass(outputPass);
-
-const fxaaPass = new FXAAPass();
-composer.addPass(fxaaPass);
-
-function resizeCanvas() {
-  lastContainerWidth = container.clientWidth;
-  lastContainerHeight = container.clientHeight;
-
-  const containerWidth = lastContainerWidth;
-  const containerHeight = lastContainerHeight;
-
-  // Update global aspect ratio
-  aspectRatio = containerWidth / containerHeight;
-
-  // Set the sizes of the various render targets (taking pixel ratio into account)
-  // (multiplying everything by 2 to get better resolution and precision at the cost
-  // of more work)
-  composer.setPixelRatio(window.devicePixelRatio);
-  composer.setSize(containerWidth * 2, containerHeight * 2);
-
-  // this sets width= and height= in HTML
-  composer.renderer.setPixelRatio(window.devicePixelRatio);
-  composer.renderer.setSize(containerWidth * 2, containerHeight * 2, false);
-}
-
-let resizeCanvasNeeded = true;
 
 // The animated dimensions
 const animations = {
@@ -224,32 +144,18 @@ function animate(nowMillis: DOMHighResTimeStamp) {
     });
   }
 
-  // Sanity check
-  if (container.firstElementChild !== renderer.domElement) {
-    console.error("Container does not contain renderer element");
-  }
+  const canvasResized = renderer.resizeCanvas();
 
-  // If the DOM container was resized, recompute
-  if (
-    container.clientWidth !== lastContainerWidth ||
-    container.clientHeight !== lastContainerHeight
-  ) {
-    resizeCanvasNeeded = true;
-  }
-
-  // Resize if necessary
-  if (resizeCanvasNeeded) {
-    resizeCanvas();
-    resizeCanvasNeeded = false;
-    centerCameraNeeded = true; // aspect ratio might have been updated
+  if (canvasResized) {
+    centerCameraNeeded = true;
   }
 
   if (centerCameraNeeded) {
-    centerCamera();
+    renderer.centerCamera();
     centerCameraNeeded = false;
   }
 
-  composer.render();
+  renderer.render();
 }
 
 // Initialize state
@@ -384,76 +290,7 @@ async function reloadModel(
   }
 }
 
-// Compute min & max of the verticies' projection onto the camera plane (coordinates in the
-// camera's coordinates)
-const computeProjectedBounds = (
-  verticies: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
-  matrixWorld: THREE.Matrix4 /* the world matrix */,
-): {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-  near: number;
-  far: number;
-} => {
-  const vertex = new THREE.Vector3();
-
-  // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
-  // to the far. For that reason some calculations for far & near are flipped.
-  let [left, right] = [Infinity, -Infinity];
-  let [top, bottom] = [-Infinity, Infinity];
-  let [near, far] = [Infinity, -Infinity];
-
-  // Iterate over all verticies in the model, keeping track of the min/max values of
-  // projection (onto camera plane)
-  for (let i = 0; i < verticies.count; i++) {
-    // Load vertex & move to world coordinates (position & rotation)
-    vertex.fromArray(verticies.array, i * verticies.itemSize);
-    vertex.applyMatrix4(matrixWorld);
-
-    // Look at the vertex from the camera's perspective
-    const v = camera.worldToLocal(vertex);
-
-    // Update mins & maxs
-    left = Math.min(left, v.x);
-    right = Math.max(right, v.x);
-    top = Math.max(top, v.y);
-    bottom = Math.min(bottom, v.y);
-    near = Math.min(near, -v.z);
-    far = Math.max(far, -v.z);
-  }
-
-  return { left, right, top, bottom, near, far };
-};
-
-let aspectRatio = 1;
 let centerCameraNeeded = true;
-
-const centerCamera = () => {
-  const geometry = mesh.geometry;
-  const geometryVerticies = geometry.getAttribute("position");
-
-  const { left, top, bottom, far, near } = computeProjectedBounds(
-    geometryVerticies,
-    mesh.matrixWorld,
-  );
-
-  // Calculate a new viewHeight so that the part fits vertically (plus overflow)
-  // View height/width in camera coordinates, exluding overflow
-  const viewHeight = top - bottom;
-  const viewWidth = aspectRatio * viewHeight;
-
-  // Adjust camera to view height & width, plus some overflow
-  camera.left = left - canvasOverflowPercent * viewWidth;
-  camera.right = left + (1 + canvasOverflowPercent) * viewWidth;
-  camera.top = bottom + (1 + canvasOverflowPercent) * viewHeight;
-  camera.bottom = bottom - canvasOverflowPercent * viewHeight;
-  camera.far = far + 1;
-  camera.near = near - 1;
-
-  camera.updateProjectionMatrix();
-};
 
 // performance.now() is equivalent to the timestamp supplied by
 // requestAnimationFrame

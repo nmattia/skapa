@@ -43,7 +43,8 @@ export class RenderOutlinePass extends Pass {
     this.normalRenderTarget.depthTexture = depthTexture;
 
     this.outlineMaterial.uniforms.tDepth.value = depthTexture;
-    this.outlineMaterial.uniforms.tNormal.value = this.normalRenderTarget.texture;
+    this.outlineMaterial.uniforms.tNormal.value =
+      this.normalRenderTarget.texture;
     this.outlineMaterial.uniforms.texelSize.value = new THREE.Vector2(
       1 / width,
       1 / height,
