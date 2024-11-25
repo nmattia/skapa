@@ -180,15 +180,47 @@ const inputs = {
   bottom: document.querySelector("#bottom")! as HTMLInputElement,
 } as const;
 
-// Set initial values for each input
+// Bind range (should be previous sibling) to this input element
+// and return the range.
+// By "bind" we mean that the slider sets the value of the specified
+// element and sends a "change" even.
+const bindRange = (e: HTMLInputElement): HTMLInputElement => {
+  const range = e.previousElementSibling;
+
+  if (!(range instanceof HTMLInputElement)) {
+    console.error("Could not bind range", range, e);
+    throw new Error("Could not bind range");
+  }
+  range.min = e.min;
+  range.max = range.getAttribute("max") ?? "";
+  range.value = e.value;
+  range.addEventListener("input", () => {
+    e.value = range.value;
+    e.dispatchEvent(new Event("change"));
+  });
+
+  return range;
+};
+
+// Set initial values for each input and bind ranges
 (["height"] as const).forEach((dim) => {
   const delta = -1 * targetDimensions.bottom.latest;
   inputs[dim].value = targetDimensions[dim].latest + delta + "";
+
+  const range = bindRange(inputs[dim]);
+  targetDimensions[dim].addListener((v) => {
+    range.value = v + delta + "";
+  });
 });
 
 (["width", "depth", "radius"] as const).forEach((dim) => {
   const delta = -1 * targetDimensions.wall.latest;
   inputs[dim].value = targetDimensions[dim].latest + delta + "";
+
+  const range = bindRange(inputs[dim]);
+  targetDimensions[dim].addListener((v) => {
+    range.value = v + delta + "";
+  });
 });
 
 (["wall", "bottom"] as const).forEach((dim) => {
