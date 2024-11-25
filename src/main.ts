@@ -159,7 +159,6 @@ function animate(nowMillis: DOMHighResTimeStamp) {
 }
 
 // Initialize state
-const dimensionType = new Dyn<"inner" | "outer">("inner");
 
 // OUTER dimensions (target)
 const targetDimensions = {
@@ -171,22 +170,6 @@ const targetDimensions = {
   bottom: new Dyn(START_BOTTOM),
 };
 
-// Initialize inputs
-(["inner", "outer"] as const).forEach((dity) => {
-  const selectors = { inner: "#inner", outer: "#outer" } as const;
-  const radio: HTMLInputElement = document.querySelector(selectors[dity])!;
-
-  // NOTE: on radio elements, 'change' triggers only when element is checked which explains
-  // why we don't have to read '.checked'
-  radio.addEventListener("change", () => {
-    dimensionType.send(dity);
-  });
-
-  // initial checked value
-  const checked = ({ inner: true, outer: false } as const)[dity];
-  radio.checked = checked;
-});
-
 // The dimension inputs
 const inputs = {
   height: document.querySelector("#height")! as HTMLInputElement,
@@ -197,25 +180,19 @@ const inputs = {
   bottom: document.querySelector("#bottom")! as HTMLInputElement,
 } as const;
 
-// When dimensions type is updated, update the inputs that depend on the dim type
-dimensionType.addListener((dity) => {
-  (["height"] as const).forEach((dim) => {
-    const delta = (
-      { inner: -1 * targetDimensions.bottom.latest, outer: 0 } as const
-    )[dity];
-    inputs[dim].value = targetDimensions[dim].latest + delta + "";
-  });
+// Set initial values for each input
+(["height"] as const).forEach((dim) => {
+  const delta = -1 * targetDimensions.bottom.latest;
+  inputs[dim].value = targetDimensions[dim].latest + delta + "";
+});
 
-  (["width", "depth", "radius"] as const).forEach((dim) => {
-    const delta = (
-      { inner: -1 * targetDimensions.wall.latest, outer: 0 } as const
-    )[dity];
-    inputs[dim].value = targetDimensions[dim].latest + delta + "";
-  });
+(["width", "depth", "radius"] as const).forEach((dim) => {
+  const delta = -1 * targetDimensions.wall.latest;
+  inputs[dim].value = targetDimensions[dim].latest + delta + "";
+});
 
-  (["wall", "bottom"] as const).forEach((dim) => {
-    inputs[dim].value = targetDimensions[dim].latest + "";
-  });
+(["wall", "bottom"] as const).forEach((dim) => {
+  inputs[dim].value = targetDimensions[dim].latest + "";
 });
 
 DIMENSIONS.forEach((dim) =>
@@ -238,17 +215,14 @@ Dyn.sequence([
 
 // Add change events to all dimension inputs
 inputs.height.addEventListener("change", () => {
-  const dity = dimensionType.latest;
-  const inner = -1 * targetDimensions.bottom.latest;
-  const delta = ({ inner, outer: 0 } as const)[dity];
+  const delta = -1 * targetDimensions.bottom.latest;
   const value = parseInt(inputs.height.value);
   if (!Number.isNaN(value)) targetDimensions.height.send(value - delta);
 });
+
 (["width", "depth", "radius"] as const).forEach((dim) => {
   inputs[dim].addEventListener("change", () => {
-    const dity = dimensionType.latest;
-    const inner = -1 * targetDimensions.wall.latest;
-    const delta = ({ inner, outer: 0 } as const)[dity];
+    const delta = -1 * targetDimensions.wall.latest;
     const value = parseInt(inputs[dim].value);
     if (!Number.isNaN(value)) targetDimensions[dim].send(value - delta);
   });
