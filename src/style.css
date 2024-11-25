@@ -65,3 +65,16 @@ footer {
   height: 2em;
   width: 100%;
 }
+
+.input-wrapper {
+  display: flex;
+  gap: 1em;
+}
+
+.input-wrapper [type="range"] {
+  flex-grow: 1;
+}
+
+.input-wrapper label {
+  min-width: 3em;
+}
