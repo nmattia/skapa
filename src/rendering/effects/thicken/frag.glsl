@@ -3,7 +3,7 @@ uniform sampler2D tInput;
 uniform vec2 texelSize;
 
 // Distance in pixels (more or less) to a black pixel for this pixel to turn black
-const int N_PIXELS = 7;
+const int N_PIXELS = 4;
 
 void main() {
 

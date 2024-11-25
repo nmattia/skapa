@@ -97,15 +97,15 @@ export class Renderer {
     // (multiplying everything by 2 to get better resolution and precision at the cost
     // of more work)
     this.composer.setPixelRatio(window.devicePixelRatio);
-    this.composer.setSize(this.canvasWidth * 2, this.canvasHeight * 2);
+    this.composer.setSize(this.canvasWidth, this.canvasHeight);
 
     // this sets width= and height= in HTML
     // NOTE: the HTML dimensions are set via CSS width & height. Here by setting the HTML
     // width & height we effectively set the resolution.
     this.composer.renderer.setPixelRatio(window.devicePixelRatio);
     this.composer.renderer.setSize(
-      this.canvasWidth * 2,
-      this.canvasHeight * 2,
+      this.canvasWidth,
+      this.canvasHeight,
       false,
     );
 
