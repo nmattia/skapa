@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Pass, FullScreenQuad } from "three/addons/postprocessing/Pass.js";
 import vertexShader from "./vert.glsl?raw";
-import fragmentShader from "./frag.thicken.glsl?raw";
+import fragmentShader from "./frag.glsl?raw";
 
 /// A rendering pass that thickens black pixels.
 export class ThickenPass extends Pass {
