@@ -103,11 +103,7 @@ export class Renderer {
     // NOTE: the HTML dimensions are set via CSS width & height. Here by setting the HTML
     // width & height we effectively set the resolution.
     this.composer.renderer.setPixelRatio(window.devicePixelRatio);
-    this.composer.renderer.setSize(
-      this.canvasWidth,
-      this.canvasHeight,
-      false,
-    );
+    this.composer.renderer.setSize(this.canvasWidth, this.canvasHeight, false);
 
     return true;
   }
