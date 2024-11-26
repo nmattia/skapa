@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { Renderer } from "./rendering/renderer";
 import type { Manifold } from "manifold-3d";
 
-import { box, base, clips } from "./model";
+import { box } from "./model";
 import { exportManifold, mesh2geometry } from "./3mfExport";
 import { Animate } from "./animate";
 
@@ -28,14 +28,11 @@ const DIMENSIONS = [
 ] as const;
 
 const START_HEIGHT = 23;
-const START_WIDTH = 43;
+const START_WIDTH = 80;
 const START_DEPTH = 33;
 const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
-
-// The positions of the clips, as X/Y on the side of the box
-const CLIPS_POSITIONS: Array<[number, number]> = [[0, 0]];
 
 // A 3MF loader, that loads the Manifold and makes it available as a 3MF Blob when ready
 class TMFLoader {
@@ -214,7 +211,7 @@ const bindRange = (e: HTMLInputElement): HTMLInputElement => {
 });
 
 (["width", "depth", "radius"] as const).forEach((dim) => {
-  const delta = -1 * targetDimensions.wall.latest;
+  const delta = -1 * 2 * targetDimensions.wall.latest;
   inputs[dim].value = targetDimensions[dim].latest + delta + "";
 
   const range = bindRange(inputs[dim]);
@@ -242,7 +239,7 @@ Dyn.sequence([
   targetDimensions["wall"],
   targetDimensions["bottom"],
 ] as const).addListener(([h, w, d, r, wa, bo]) => {
-  tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo, CLIPS_POSITIONS));
+  tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo));
 });
 
 // Add change events to all dimension inputs
@@ -279,21 +276,11 @@ async function reloadModel(
   wall: number,
   bottom: number,
 ) {
-  const model = await base(height, width, depth, radius, wall, bottom);
+  const model = await box(height, width, depth, radius, wall, bottom);
   const geometry = mesh2geometry(model);
   geometry.computeVertexNormals(); // Make sure the geometry has normals
   mesh.geometry = geometry;
   mesh.clear(); // Remove all children
-
-  // Add the 2 clips (left & right)
-  const lr = await clips();
-  for (const clip of lr) {
-    const g = mesh2geometry(clip);
-    g.computeVertexNormals();
-    const m = new THREE.Mesh(g, material);
-    m.position.y = -depth / 2;
-    mesh.add(m);
-  }
 }
 
 let centerCameraNeeded = true;
