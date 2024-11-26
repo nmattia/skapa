@@ -132,14 +132,29 @@ export async function box(
   radius: number,
   wall: number,
   bottom: number,
-  clipsPositions: Array<[number, number]> /* X & Y in the side plane */,
 ): Promise<Manifold> {
+  const padding = 5; /* mm */
+  const W = width - 2 * radius - 2 * padding; // Working area
+  const gw = 40; // (horizontal) gap between clip origins
+  const N = Math.floor(W / gw + 1); // How many (pairs of) clips we can fit
+  const M = N - 1;
+  const dx = ((-1 * M) / 2) * gw; // where to place the clips
+
+  // Same as horizontal, but vertically (slightly simpler because we always start
+  // from 0 and we don't need to take the radius into account)
+  const H = height - 10; // Total height minus clip height
+  const gh = 40;
+  const NV = Math.floor(H / gh + 1);
+
   let res = await base(height, width, depth, radius, wall, bottom);
+
   const [clipL, clipR] = await clips();
 
-  for (const [x, y] of clipsPositions) {
-    res = res.add(clipL.translate(x, -depth / 2, y));
-    res = res.add(clipR.translate(x, -depth / 2, y));
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < NV; j++) {
+      res = res.add(clipL.translate(i * gw + dx, -depth / 2, j * gh));
+      res = res.add(clipR.translate(i * gw + dx, -depth / 2, j * gh));
+    }
   }
 
   return res;
