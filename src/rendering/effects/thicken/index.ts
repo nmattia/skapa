@@ -18,6 +18,7 @@ export class ThickenPass extends Pass {
       uniforms: {
         tInput: { value: null },
         texelSize: { value: null },
+        thickness: { value: 0 },
       },
       vertexShader,
       fragmentShader,
@@ -32,6 +33,10 @@ export class ThickenPass extends Pass {
       1 / width,
       1 / height,
     );
+  }
+
+  setThickness(w: number) {
+    this.thickenMaterial.uniforms.thickness.value = w;
   }
 
   render(

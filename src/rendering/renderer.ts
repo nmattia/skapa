@@ -23,6 +23,8 @@ export class Renderer {
   public canvasWidth: number;
   public canvasHeight: number;
 
+  public thickenPass: ThickenPass;
+
   constructor(canvas: HTMLCanvasElement, mesh: THREE.Mesh) {
     this.canvas = canvas;
     this.canvasWidth = 0;
@@ -67,6 +69,7 @@ export class Renderer {
       canvas.clientWidth,
       canvas.clientHeight,
     );
+    this.thickenPass = thickenPass;
     this.composer.addPass(thickenPass);
 
     // By default, EffectComposer has an implicit rendering pass at the end.
@@ -133,6 +136,9 @@ export class Renderer {
     this.camera.near = near - 1;
 
     this.camera.updateProjectionMatrix();
+
+    // The camera was moved/updated, so recompute the thickness of the outline
+    this.thickenPass.setThickness(150 * window.devicePixelRatio / viewWidth);
   }
 
   render() {
