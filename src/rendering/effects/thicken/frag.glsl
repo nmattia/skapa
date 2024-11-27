@@ -16,7 +16,7 @@ void main() {
             if (i * i + j * j > thickness/2 * thickness/2) { continue; }
 
             vec2 xy = vec2(i,j);
-            vec4 smpl = texture2D(tInput, vUv + xy * vec2(texelSize));
+            vec4 smpl = texture2D(tInput, vUv + xy * texelSize);
 
             // If a pixel in the vicinity is black, set this to black and return
             if (smpl == vec4(vec3(0.0), 1.0) ){
