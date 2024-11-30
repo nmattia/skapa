@@ -36,21 +36,32 @@ const START_BOTTOM = 3;
 
 // A 3MF loader, that loads the Manifold and makes it available as a 3MF Blob when ready
 class TMFLoader {
-  // The exported manifold, when reading
-  private tmf: undefined | Blob;
+  // The exported manifold, when ready
+  private loading?: { tmf?: Blob };
 
-  constructor(manifold: Promise<Manifold>) {
-    manifold.then((manifold) => {
-      this.tmf = exportManifold(manifold);
+  load(manifoldP: Promise<Manifold>) {
+    this.loading = {}; // Initialize empty
+
+    // Pass the _current_ "loading" to the promise closure, so that
+    // this.loading may be overriden if load() is called again. This
+    // ensures we can never take() an outdated model.
+    const loading = this.loading;
+    manifoldP.then((manifold) => {
+      loading.tmf = exportManifold(manifold);
     });
   }
 
-  get(): undefined | Blob {
-    return this.tmf;
+  take(): undefined | Blob {
+    const tmf = this.loading?.tmf;
+    if (tmf !== undefined) {
+      // Ensure the model is taken only once
+      this.loading = undefined;
+    }
+    return tmf;
   }
 }
 
-let tmfLoader: undefined | TMFLoader;
+const tmfLoader = new TMFLoader();
 
 // We don't actually use the material but three needs it
 const material = new THREE.Material();
@@ -91,15 +102,10 @@ function animate(nowMillis: DOMHighResTimeStamp) {
   requestAnimationFrame(animate);
 
   // Reload 3mf if necessary
-  if (tmfLoader !== undefined) {
-    const newTmf = tmfLoader.get();
-    if (newTmf !== undefined) {
-      // Ensure we load the object only once
-      tmfLoader = undefined;
-
-      // Update the download link
-      link.href = URL.createObjectURL(newTmf);
-    }
+  const newTmf = tmfLoader.take();
+  if (newTmf !== undefined) {
+    // Update the download link
+    link.href = URL.createObjectURL(newTmf);
   }
 
   // Handle rotation animation
@@ -239,7 +245,7 @@ Dyn.sequence([
   targetDimensions["wall"],
   targetDimensions["bottom"],
 ] as const).addListener(([h, w, d, r, wa, bo]) => {
-  tmfLoader = new TMFLoader(box(h, w, d, r, wa, bo));
+  tmfLoader.load(box(h, w, d, r, wa, bo));
 });
 
 // Add change events to all dimension inputs
