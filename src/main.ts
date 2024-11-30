@@ -31,7 +31,7 @@ const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
-/// MODEL
+/// STATE
 
 // Dimensions of the model (outer, where applicable).
 // There are the dimensions of the 3MF file, as well as
@@ -45,6 +45,31 @@ const modelDimensions = {
   wall: new Dyn(START_WALL),
   bottom: new Dyn(START_BOTTOM),
 };
+
+const innerHeight = Dyn.sequence([
+  modelDimensions.bottom,
+  modelDimensions.height,
+] as const).map(([bottom, height]) => height - bottom);
+
+const innerWidth = Dyn.sequence([
+  modelDimensions.wall,
+  modelDimensions.width,
+] as const).map(([wall, width]) => width - 2 * wall);
+
+const innerDepth = Dyn.sequence([
+  modelDimensions.wall,
+  modelDimensions.depth,
+] as const).map(([wall, depth]) => depth - 2 * wall);
+
+const innerRadius = Dyn.sequence([
+  modelDimensions.wall,
+  modelDimensions.radius,
+] as const).map(([wall, radius]) => radius - wall);
+
+// When true, the back of the object should be shown
+const showBack = new Dyn(false);
+
+/// MODEL
 
 const tmfLoader = new TMFLoader();
 
@@ -66,12 +91,12 @@ async function reloadModel(
 
 // when target dimensions are changed, update the model to download
 Dyn.sequence([
-  modelDimensions["height"],
-  modelDimensions["width"],
-  modelDimensions["depth"],
-  modelDimensions["radius"],
-  modelDimensions["wall"],
-  modelDimensions["bottom"],
+  modelDimensions.height,
+  modelDimensions.width,
+  modelDimensions.depth,
+  modelDimensions.radius,
+  modelDimensions.wall,
+  modelDimensions.bottom,
 ] as const).addListener(([h, w, d, r, wa, bo]) => {
   tmfLoader.load(box(h, w, d, r, wa, bo));
 });
@@ -97,8 +122,6 @@ let reloadModelNeeded = true;
 // The animated rotation
 const rotation = new Animate(0);
 
-// When true, the back of the object should be shown
-const showBack = new Dyn(false);
 showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
 
 /// ANIMATIONS
@@ -113,6 +136,12 @@ const animations = {
   bottom: new Animate(START_BOTTOM),
 };
 
+DIMENSIONS.forEach((dim) =>
+  modelDimensions[dim].addListener((val) => {
+    animations[dim].startAnimationTo(val);
+  }),
+);
+
 /// DOM
 
 // Download button
@@ -123,86 +152,104 @@ link.download = "skadis-box.3mf";
 // The dimension inputs
 const inputs = {
   height: document.querySelector("#height")! as HTMLInputElement,
+  heightRange: document.querySelector("#height-range")! as HTMLInputElement,
   width: document.querySelector("#width")! as HTMLInputElement,
+  widthRange: document.querySelector("#width-range")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
+  depthRange: document.querySelector("#depth-range")! as HTMLInputElement,
   radius: document.querySelector("#radius")! as HTMLInputElement,
+  radiusRange: document.querySelector("#radius-range")! as HTMLInputElement,
   wall: document.querySelector("#wall")! as HTMLInputElement,
   bottom: document.querySelector("#bottom")! as HTMLInputElement,
 } as const;
 
 // Add change events to all dimension inputs
-inputs.height.addEventListener("change", () => {
-  const delta = -1 * modelDimensions.bottom.latest;
-  const value = parseInt(inputs.height.value);
-  if (!Number.isNaN(value)) modelDimensions.height.send(value - delta);
-});
 
-(["width", "depth", "radius"] as const).forEach((dim) => {
-  inputs[dim].addEventListener("change", () => {
-    const delta = -1 * modelDimensions.wall.latest;
-    const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) modelDimensions[dim].send(value - delta);
+// height
+(
+  [
+    [inputs.height, "change"],
+    [inputs.heightRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  innerHeight.addListener((height) => {
+    input.value = `${height}`;
   });
-});
-(["wall", "bottom"] as const).forEach((dim) => {
-  inputs[dim].addEventListener("change", () => {
-    const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) modelDimensions[dim].send(value);
+  input.addEventListener(evnt, () => {
+    const outer = parseInt(input.value) + modelDimensions.bottom.latest;
+    if (!Number.isNaN(outer)) modelDimensions.height.send(outer);
   });
 });
 
-// Bind range (should be previous sibling) to this input element
-// and return the range.
-// By "bind" we mean that the slider sets the value of the specified
-// element and sends a "change" even.
-const bindRange = (e: HTMLInputElement): HTMLInputElement => {
-  const range = e.previousElementSibling;
-
-  if (!(range instanceof HTMLInputElement)) {
-    console.error("Could not bind range", range, e);
-    throw new Error("Could not bind range");
-  }
-  range.min = e.min;
-  range.max = range.getAttribute("max") ?? "";
-  range.value = e.value;
-  range.addEventListener("input", () => {
-    e.value = range.value;
-    e.dispatchEvent(new Event("change"));
+// width
+(
+  [
+    [inputs.width, "change"],
+    [inputs.widthRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  innerWidth.addListener((width) => {
+    input.value = `${width}`;
   });
-
-  return range;
-};
-
-// Set initial values for each input and bind ranges
-(["height"] as const).forEach((dim) => {
-  const delta = -1 * modelDimensions.bottom.latest;
-  inputs[dim].value = modelDimensions[dim].latest + delta + "";
-
-  const range = bindRange(inputs[dim]);
-  modelDimensions[dim].addListener((v) => {
-    range.value = v + delta + "";
+  input.addEventListener(evnt, () => {
+    const outer = parseInt(input.value) + 2 * modelDimensions.wall.latest;
+    if (!Number.isNaN(outer)) modelDimensions.width.send(outer);
   });
 });
 
-(["width", "depth", "radius"] as const).forEach((dim) => {
-  const delta = -1 * 2 * modelDimensions.wall.latest;
-  inputs[dim].value = modelDimensions[dim].latest + delta + "";
-
-  const range = bindRange(inputs[dim]);
-  modelDimensions[dim].addListener((v) => {
-    range.value = v + delta + "";
+// depth
+(
+  [
+    [inputs.depth, "change"],
+    [inputs.depthRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  innerDepth.addListener((depth) => {
+    input.value = `${depth}`;
+  });
+  input.addEventListener(evnt, () => {
+    const outer = parseInt(input.value) + 2 * modelDimensions.wall.latest;
+    if (!Number.isNaN(outer)) modelDimensions.depth.send(outer);
   });
 });
 
-(["wall", "bottom"] as const).forEach((dim) => {
-  inputs[dim].value = modelDimensions[dim].latest + "";
+// radius
+(
+  [
+    [inputs.radius, "change"],
+    [inputs.radiusRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  innerRadius.addListener((radius) => {
+    input.value = `${radius}`;
+  });
+  input.addEventListener(evnt, () => {
+    const outer = parseInt(input.value) + modelDimensions.wall.latest;
+    if (!Number.isNaN(outer)) modelDimensions.radius.send(outer);
+  });
 });
 
-DIMENSIONS.forEach((dim) =>
-  modelDimensions[dim].addListener((val) => {
-    animations[dim].startAnimationTo(val);
-  }),
-);
+// wall
+([[inputs.wall, "change"]] as const).forEach(([input, evnt]) => {
+  modelDimensions.wall.addListener((value) => {
+    input.value = `${value}`;
+  });
+  input.addEventListener(evnt, () => {
+    const value = parseInt(input.value);
+    if (!Number.isNaN(value)) modelDimensions.wall.send(value);
+  });
+});
+
+// bottom
+([[inputs.bottom, "change"]] as const).forEach(([input, evnt]) => {
+  modelDimensions.bottom.addListener((value) => {
+    input.value = `${value}`;
+  });
+  input.addEventListener(evnt, () => {
+    const value = parseInt(input.value);
+    if (!Number.isNaN(value)) modelDimensions.bottom.send(value);
+  });
+});
 
 document.querySelector("#flip")!.addEventListener("click", () => {
   showBack.send(!showBack.latest);

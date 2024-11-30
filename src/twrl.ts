@@ -59,6 +59,20 @@ export class Dyn<A> {
     return seqed;
   }
 
+  map<B>(
+    opts: ((a: A) => B) | { f: (a: A) => B | typeof Dyn.unchanged; def: B },
+  ): Dyn<B> {
+    const { handleValue, latest } = this.__handleMapOpts(opts);
+
+    const input = new Dyn<B>(latest);
+
+    this.listeners.push((value: A) =>
+      handleValue({ send: (a: B) => input.send(a), value }),
+    );
+
+    return input;
+  }
+
   // How the mapped chan should handle the value
   protected __handleMapOpts<B>(
     opts: ((a: A) => B) | { f: (a: A) => B | typeof Dyn.unchanged; def: B },
