@@ -2,18 +2,15 @@ import "./style.css";
 
 import * as THREE from "three";
 import { Renderer } from "./rendering/renderer";
-import type { Manifold } from "manifold-3d";
 
-import { box } from "./model";
-import { exportManifold, mesh2geometry } from "./3mfExport";
+import { box } from "./model/manifold";
+import { mesh2geometry } from "./model/export";
+import { TMFLoader } from "./model/load";
 import { Animate } from "./animate";
 
 import { Dyn } from "./twrl";
 
-// Download button
-const link = document.querySelector("a")!;
-link.innerText = "Download";
-link.download = "skadis-box.3mf";
+/// CONSTANTS
 
 // Align axes with 3D printer
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);
@@ -34,40 +31,60 @@ const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
-// A 3MF loader, that loads the Manifold and makes it available as a 3MF Blob when ready
-class TMFLoader {
-  // The exported manifold, when ready
-  private loading?: { tmf?: Blob };
+/// MODEL
 
-  load(manifoldP: Promise<Manifold>) {
-    this.loading = {}; // Initialize empty
-
-    // Pass the _current_ "loading" to the promise closure, so that
-    // this.loading may be overriden if load() is called again. This
-    // ensures we can never take() an outdated model.
-    const loading = this.loading;
-    manifoldP.then((manifold) => {
-      loading.tmf = exportManifold(manifold);
-    });
-  }
-
-  take(): undefined | Blob {
-    const tmf = this.loading?.tmf;
-    if (tmf !== undefined) {
-      // Ensure the model is taken only once
-      this.loading = undefined;
-    }
-    return tmf;
-  }
-}
+// Dimensions of the model (outer, where applicable).
+// There are the dimensions of the 3MF file, as well as
+// the _target_ dimensions for the animations, though may
+// be (ephemerally) different from the animation values.
+const modelDimensions = {
+  height: new Dyn(START_HEIGHT),
+  width: new Dyn(START_WIDTH),
+  depth: new Dyn(START_DEPTH),
+  radius: new Dyn(START_RADIUS),
+  wall: new Dyn(START_WALL),
+  bottom: new Dyn(START_BOTTOM),
+};
 
 const tmfLoader = new TMFLoader();
 
-// We don't actually use the material but three needs it
-const material = new THREE.Material();
+// Reloads the model seen on page
+async function reloadModel(
+  height: number,
+  width: number,
+  depth: number,
+  radius: number,
+  wall: number,
+  bottom: number,
+) {
+  const model = await box(height, width, depth, radius, wall, bottom);
+  const geometry = mesh2geometry(model);
+  geometry.computeVertexNormals(); // Make sure the geometry has normals
+  mesh.geometry = geometry;
+  mesh.clear(); // Remove all children
+}
+
+// when target dimensions are changed, update the model to download
+Dyn.sequence([
+  modelDimensions["height"],
+  modelDimensions["width"],
+  modelDimensions["depth"],
+  modelDimensions["radius"],
+  modelDimensions["wall"],
+  modelDimensions["bottom"],
+] as const).addListener(([h, w, d, r, wa, bo]) => {
+  tmfLoader.load(box(h, w, d, r, wa, bo));
+});
+
+/// RENDER
+
+// Set to 'true' whenever the camera needs to be centered again
+let centerCameraNeeded = true;
+
+// The mesh, updated in place when the geometry needs to change
 const mesh: THREE.Mesh = new THREE.Mesh(
   new THREE.BoxGeometry(START_WIDTH, START_HEIGHT, START_DEPTH),
-  material,
+  new THREE.Material(),
 );
 
 const MESH_ROTATION_DELTA = 0.15;
@@ -84,9 +101,7 @@ const rotation = new Animate(0);
 const showBack = new Dyn(false);
 showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
 
-document.querySelector("#flip")!.addEventListener("click", () => {
-  showBack.send(!showBack.latest);
-});
+/// ANIMATIONS
 
 // The animated dimensions
 const animations = {
@@ -98,8 +113,109 @@ const animations = {
   bottom: new Animate(START_BOTTOM),
 };
 
-function animate(nowMillis: DOMHighResTimeStamp) {
-  requestAnimationFrame(animate);
+/// DOM
+
+// Download button
+const link = document.querySelector("a")!;
+link.innerText = "Download";
+link.download = "skadis-box.3mf";
+
+// The dimension inputs
+const inputs = {
+  height: document.querySelector("#height")! as HTMLInputElement,
+  width: document.querySelector("#width")! as HTMLInputElement,
+  depth: document.querySelector("#depth")! as HTMLInputElement,
+  radius: document.querySelector("#radius")! as HTMLInputElement,
+  wall: document.querySelector("#wall")! as HTMLInputElement,
+  bottom: document.querySelector("#bottom")! as HTMLInputElement,
+} as const;
+
+// Add change events to all dimension inputs
+inputs.height.addEventListener("change", () => {
+  const delta = -1 * modelDimensions.bottom.latest;
+  const value = parseInt(inputs.height.value);
+  if (!Number.isNaN(value)) modelDimensions.height.send(value - delta);
+});
+
+(["width", "depth", "radius"] as const).forEach((dim) => {
+  inputs[dim].addEventListener("change", () => {
+    const delta = -1 * modelDimensions.wall.latest;
+    const value = parseInt(inputs[dim].value);
+    if (!Number.isNaN(value)) modelDimensions[dim].send(value - delta);
+  });
+});
+(["wall", "bottom"] as const).forEach((dim) => {
+  inputs[dim].addEventListener("change", () => {
+    const value = parseInt(inputs[dim].value);
+    if (!Number.isNaN(value)) modelDimensions[dim].send(value);
+  });
+});
+
+// Bind range (should be previous sibling) to this input element
+// and return the range.
+// By "bind" we mean that the slider sets the value of the specified
+// element and sends a "change" even.
+const bindRange = (e: HTMLInputElement): HTMLInputElement => {
+  const range = e.previousElementSibling;
+
+  if (!(range instanceof HTMLInputElement)) {
+    console.error("Could not bind range", range, e);
+    throw new Error("Could not bind range");
+  }
+  range.min = e.min;
+  range.max = range.getAttribute("max") ?? "";
+  range.value = e.value;
+  range.addEventListener("input", () => {
+    e.value = range.value;
+    e.dispatchEvent(new Event("change"));
+  });
+
+  return range;
+};
+
+// Set initial values for each input and bind ranges
+(["height"] as const).forEach((dim) => {
+  const delta = -1 * modelDimensions.bottom.latest;
+  inputs[dim].value = modelDimensions[dim].latest + delta + "";
+
+  const range = bindRange(inputs[dim]);
+  modelDimensions[dim].addListener((v) => {
+    range.value = v + delta + "";
+  });
+});
+
+(["width", "depth", "radius"] as const).forEach((dim) => {
+  const delta = -1 * 2 * modelDimensions.wall.latest;
+  inputs[dim].value = modelDimensions[dim].latest + delta + "";
+
+  const range = bindRange(inputs[dim]);
+  modelDimensions[dim].addListener((v) => {
+    range.value = v + delta + "";
+  });
+});
+
+(["wall", "bottom"] as const).forEach((dim) => {
+  inputs[dim].value = modelDimensions[dim].latest + "";
+});
+
+DIMENSIONS.forEach((dim) =>
+  modelDimensions[dim].addListener((val) => {
+    animations[dim].startAnimationTo(val);
+  }),
+);
+
+document.querySelector("#flip")!.addEventListener("click", () => {
+  showBack.send(!showBack.latest);
+});
+
+/// LOOP
+
+// Set to current frame's timestamp when a model starts loading, and set
+// to undefined when the model has finished loading
+let modelLoadStarted: undefined | DOMHighResTimeStamp;
+
+function loop(nowMillis: DOMHighResTimeStamp) {
+  requestAnimationFrame(loop);
 
   // Reload 3mf if necessary
   const newTmf = tmfLoader.take();
@@ -161,138 +277,8 @@ function animate(nowMillis: DOMHighResTimeStamp) {
   renderer.render();
 }
 
-// Initialize state
-
-// OUTER dimensions (target)
-const targetDimensions = {
-  height: new Dyn(START_HEIGHT),
-  width: new Dyn(START_WIDTH),
-  depth: new Dyn(START_DEPTH),
-  radius: new Dyn(START_RADIUS),
-  wall: new Dyn(START_WALL),
-  bottom: new Dyn(START_BOTTOM),
-};
-
-// The dimension inputs
-const inputs = {
-  height: document.querySelector("#height")! as HTMLInputElement,
-  width: document.querySelector("#width")! as HTMLInputElement,
-  depth: document.querySelector("#depth")! as HTMLInputElement,
-  radius: document.querySelector("#radius")! as HTMLInputElement,
-  wall: document.querySelector("#wall")! as HTMLInputElement,
-  bottom: document.querySelector("#bottom")! as HTMLInputElement,
-} as const;
-
-// Bind range (should be previous sibling) to this input element
-// and return the range.
-// By "bind" we mean that the slider sets the value of the specified
-// element and sends a "change" even.
-const bindRange = (e: HTMLInputElement): HTMLInputElement => {
-  const range = e.previousElementSibling;
-
-  if (!(range instanceof HTMLInputElement)) {
-    console.error("Could not bind range", range, e);
-    throw new Error("Could not bind range");
-  }
-  range.min = e.min;
-  range.max = range.getAttribute("max") ?? "";
-  range.value = e.value;
-  range.addEventListener("input", () => {
-    e.value = range.value;
-    e.dispatchEvent(new Event("change"));
-  });
-
-  return range;
-};
-
-// Set initial values for each input and bind ranges
-(["height"] as const).forEach((dim) => {
-  const delta = -1 * targetDimensions.bottom.latest;
-  inputs[dim].value = targetDimensions[dim].latest + delta + "";
-
-  const range = bindRange(inputs[dim]);
-  targetDimensions[dim].addListener((v) => {
-    range.value = v + delta + "";
-  });
-});
-
-(["width", "depth", "radius"] as const).forEach((dim) => {
-  const delta = -1 * 2 * targetDimensions.wall.latest;
-  inputs[dim].value = targetDimensions[dim].latest + delta + "";
-
-  const range = bindRange(inputs[dim]);
-  targetDimensions[dim].addListener((v) => {
-    range.value = v + delta + "";
-  });
-});
-
-(["wall", "bottom"] as const).forEach((dim) => {
-  inputs[dim].value = targetDimensions[dim].latest + "";
-});
-
-DIMENSIONS.forEach((dim) =>
-  targetDimensions[dim].addListener((val) => {
-    animations[dim].startAnimationTo(val);
-  }),
-);
-
-// when target dimensions are changed, update the model to download
-Dyn.sequence([
-  targetDimensions["height"],
-  targetDimensions["width"],
-  targetDimensions["depth"],
-  targetDimensions["radius"],
-  targetDimensions["wall"],
-  targetDimensions["bottom"],
-] as const).addListener(([h, w, d, r, wa, bo]) => {
-  tmfLoader.load(box(h, w, d, r, wa, bo));
-});
-
-// Add change events to all dimension inputs
-inputs.height.addEventListener("change", () => {
-  const delta = -1 * targetDimensions.bottom.latest;
-  const value = parseInt(inputs.height.value);
-  if (!Number.isNaN(value)) targetDimensions.height.send(value - delta);
-});
-
-(["width", "depth", "radius"] as const).forEach((dim) => {
-  inputs[dim].addEventListener("change", () => {
-    const delta = -1 * targetDimensions.wall.latest;
-    const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) targetDimensions[dim].send(value - delta);
-  });
-});
-(["wall", "bottom"] as const).forEach((dim) => {
-  inputs[dim].addEventListener("change", () => {
-    const value = parseInt(inputs[dim].value);
-    if (!Number.isNaN(value)) targetDimensions[dim].send(value);
-  });
-});
-
-// Set to current frame's timestamp when a model starts loading, and set
-// to undefined when the model has finished loading
-let modelLoadStarted: undefined | DOMHighResTimeStamp;
-
-// Reloads the model seen on page
-async function reloadModel(
-  height: number,
-  width: number,
-  depth: number,
-  radius: number,
-  wall: number,
-  bottom: number,
-) {
-  const model = await box(height, width, depth, radius, wall, bottom);
-  const geometry = mesh2geometry(model);
-  geometry.computeVertexNormals(); // Make sure the geometry has normals
-  mesh.geometry = geometry;
-  mesh.clear(); // Remove all children
-}
-
-let centerCameraNeeded = true;
-
 // performance.now() is equivalent to the timestamp supplied by
 // requestAnimationFrame
 //
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
-animate(performance.now());
+loop(performance.now());
