@@ -138,7 +138,7 @@ export class Renderer {
     this.camera.updateProjectionMatrix();
 
     // The camera was moved/updated, so recompute the thickness of the outline
-    this.thickenPass.setThickness((150 * window.devicePixelRatio) / viewWidth);
+    this.thickenPass.setThickness((180 * window.devicePixelRatio) / viewWidth);
   }
 
   render() {
