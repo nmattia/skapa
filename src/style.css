@@ -23,9 +23,15 @@ section {
   }
 }
 
+@media (width > 1200px) {
+  section {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
 canvas {
   /* Overflow allowed outside of the container */
-  /* --overflow: value is set from JS */
+  --overflow: 15%;
   position: absolute;
   left: calc(-1 * var(--overflow));
   top: calc(-1 * var(--overflow));
@@ -34,9 +40,13 @@ canvas {
   height: calc(100% + 2 * var(--overflow));
 }
 
-main {
-  padding: 2em;
+@media (width < 600px) {
+  canvas {
+    /* match body padding */
+    --overflow: 1em;
+  }
 }
+
 @media (width > 900px) {
   main {
     border-radius: 1px;
@@ -55,8 +65,15 @@ footer {
 }
 
 #canvas-container {
-  height: 20em;
+  height: 23em;
   position: relative;
+  margin-bottom: 3em;
+}
+
+@media (width < 600px) {
+  #canvas-container {
+    height: 20em;
+  }
 }
 
 #flip {

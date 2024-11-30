@@ -24,9 +24,9 @@ const DIMENSIONS = [
   "bottom",
 ] as const;
 
-const START_HEIGHT = 23;
+const START_HEIGHT = 50;
 const START_WIDTH = 80;
-const START_DEPTH = 33;
+const START_DEPTH = 60;
 const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;

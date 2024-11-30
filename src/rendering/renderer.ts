@@ -6,10 +6,6 @@ import { ThickenPass } from "./effects/thicken";
 import { FXAAPass } from "./effects/antialiasing";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-// Overflow value (canvas overflowing outside of container)
-// that seems to accomodate part overflow for most dimensions
-const CANVAS_OVERFLOW_PERCENT = 0.15;
-
 export class Renderer {
   public camera: THREE.OrthographicCamera;
   public mesh: THREE.Mesh;
@@ -30,10 +26,6 @@ export class Renderer {
     this.canvasWidth = 0;
     this.canvasHeight = 0;
     this.mesh = mesh;
-    this.canvas.style.setProperty(
-      "--overflow",
-      CANVAS_OVERFLOW_PERCENT * 100 + "%",
-    );
 
     // Setup camera on front wall, looking at the back wall
     this.camera = new THREE.OrthographicCamera();
@@ -115,7 +107,20 @@ export class Renderer {
     const geometry = this.mesh.geometry;
     const geometryVerticies = geometry.getAttribute("position");
 
-    const { left, top, bottom, far, near } = computeProjectedBounds(
+    // Here we compute the overflow of the canvas relative to its parent element. The parent (container)
+    // and canvas sizes are set by the CSS.
+    //
+    // The overflow is used to scale the image down so that it appears to fit in the container (aligned with
+    // other elements) though can overflow (e.g. when rotation a part).
+    const canvasParent = this.canvas.parentElement!;
+    const overflowX =
+      (0.5 * (this.canvas.clientWidth - canvasParent.clientWidth)) /
+      canvasParent.clientWidth;
+    const overflowY =
+      (0.5 * (this.canvas.clientHeight - canvasParent.clientHeight)) /
+      canvasParent.clientHeight;
+
+    const { left, right, top, bottom, far, near } = computeProjectedBounds(
       this.camera,
       geometryVerticies,
       this.mesh.matrixWorld,
@@ -123,22 +128,59 @@ export class Renderer {
 
     // Calculate a new viewHeight so that the part fits vertically (plus overflow)
     // View height/width in camera coordinates, exluding overflow
-    const viewHeight = top - bottom;
-    const aspectRatio = this.canvas.clientWidth / this.canvas.clientHeight;
-    const viewWidth = aspectRatio * viewHeight;
+    const canvasAspectRatio =
+      this.canvas.clientWidth / this.canvas.clientHeight;
 
-    // Adjust camera to view height & width, plus some overflow
-    this.camera.left = left - CANVAS_OVERFLOW_PERCENT * viewWidth;
-    this.camera.right = left + (1 + CANVAS_OVERFLOW_PERCENT) * viewWidth;
-    this.camera.top = bottom + (1 + CANVAS_OVERFLOW_PERCENT) * viewHeight;
-    this.camera.bottom = bottom - CANVAS_OVERFLOW_PERCENT * viewHeight;
+    const containerAspectRatio =
+      canvasParent.clientWidth / canvasParent.clientHeight;
+    const sceneAspectRatio = (right - left) / (top - bottom);
+
+    if (sceneAspectRatio > containerAspectRatio) {
+      // The scene is wider than the canvas, so we make the scene fit the canvas' width and
+      // center it vertically.
+
+      // The width of the part (AND the container) in camera coordinates
+      const width = right - left;
+
+      this.camera.left = left - width * overflowX;
+      this.camera.right = right + width * overflowX;
+
+      // The height of the container in camera coordinates
+      const height = width / containerAspectRatio;
+
+      // The height of the part on the canvas
+      const heightScene = width / sceneAspectRatio;
+      const heightDelta = height - heightScene;
+
+      this.camera.bottom = bottom - height * overflowY - heightDelta / 2;
+      this.camera.top = top + height * overflowY + heightDelta / 2;
+    } else {
+      // The scene is taller than the canvas, so we make the scene fit the canvas' height
+      // and align it to the left.
+
+      // The height of the container in camera coordinates
+      const height = top - bottom;
+
+      this.camera.top = top + height * overflowY;
+      this.camera.bottom = bottom - height * overflowY;
+
+      // The width of the container in camera coordinates
+      const width = height * canvasAspectRatio;
+
+      this.camera.left = left - width * overflowX;
+      this.camera.right = left + width + width * overflowX;
+    }
+
     this.camera.far = far + 1;
     this.camera.near = near - 1;
 
     this.camera.updateProjectionMatrix();
 
+    const width = right - left;
+    const height = top - bottom;
+    const maxDim = Math.sqrt(width * width + height * height);
     // The camera was moved/updated, so recompute the thickness of the outline
-    this.thickenPass.setThickness((180 * window.devicePixelRatio) / viewWidth);
+    this.thickenPass.setThickness((50 * window.devicePixelRatio) / maxDim);
   }
 
   render() {
