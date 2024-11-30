@@ -1,31 +1,26 @@
 varying vec2 vUv; // (x,y) with x,y in [0,1]
 uniform sampler2D tInput;
-uniform int thickness;
 uniform vec2 texelSize;
 
 // Distance in pixels (more or less) to a black pixel for this pixel to turn black
+uniform int thickness;
 
 void main() {
+    vec4 base = texture2D(tInput, vUv);
+    vec4 black = vec4(vec3(0.), 1.);
 
-    // True if the pixel is within a distance of ~thickness of a black pixel
-    bool black = false;
+    int thickness2 = thickness*thickness;
+
+    // Becomes true if any pixel within a disc of radius "thickness" is black
+    bool is_black = false;
 
     for (int i = -thickness/2; i < thickness/2; i++) {
+        int i2 = i * i;
         for (int j = -thickness/2; j < thickness/2; j++) {
-            // If this pixel is futher away than thickness, skip
-            if (i * i + j * j > thickness/2 * thickness/2) { continue; }
-
-            vec2 xy = vec2(i,j);
-            vec4 smpl = texture2D(tInput, vUv + xy * texelSize);
-
-            // If a pixel in the vicinity is black, set this to black and return
-            if (smpl == vec4(vec3(0.0), 1.0) ){
-                gl_FragColor.rgba = vec4(vec3(0.0), 1.0);
-                return;
-            }
+            vec4 smpl = texture2D(tInput, vUv + vec2(i,j) * texelSize);
+            is_black = is_black || i2 + j * j < thickness2 && smpl == black;
         }
-
     }
 
-    gl_FragColor.rgba = texture2D(tInput, vUv);
+    gl_FragColor.rgba = is_black ? black : base;
 }
