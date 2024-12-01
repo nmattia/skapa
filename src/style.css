@@ -83,15 +83,169 @@ footer {
   width: 100%;
 }
 
-.input-wrapper {
+.range-input-wrapper {
   display: flex;
   gap: 1em;
 }
 
-.input-wrapper [type="range"] {
-  flex-grow: 1;
+.range-input-wrapper label {
+  min-width: 3em;
 }
 
-.input-wrapper label {
-  min-width: 3em;
+.range-input-wrapper input[type="range"] {
+  margin: 0;
+}
+
+/* ADAPTED FROM https://css-tricks.com/styling-cross-browser-compatible-range-inputs-css/ */
+
+/* Reset */
+
+.range-input-wrapper input[type="range"] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+}
+
+.range-input-wrapper input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+.range-input-wrapper input[type="range"]:focus {
+  outline: none; /* Removes the blue border. */
+}
+
+.range-input-wrapper input[type="range"]::-ms-track {
+  width: 100%;
+  cursor: pointer;
+
+  /* Hides the slider so custom styles can be added */
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Styling (thumb) */
+
+.range-input-wrapper {
+  --thumb-height: 0.5em;
+  --thumb-fill: white;
+  --thumb-stroke: black;
+  --thumb-stroke-width: 0.2em;
+}
+
+.range-input-wrapper input[type="range"]::-webkit-slider-thumb {
+  outline: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  aspect-ratio: 1;
+  height: var(--thumb-height);
+  border-radius: 50%;
+  background-color: var(--thumb-fill);
+  cursor: pointer;
+
+  /*  needs to be specified in chrome (space between the top of the thumb & the top of the track) */
+  margin-top: calc(-1 * var(--thumb-height) / 2);
+}
+
+.range-input-wrapper input[type="range"]::-moz-range-thumb {
+  border: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  height: var(--thumb-height);
+  /* aspect-ratio doesn't seem to work on FF */
+  width: var(--thumb-height);
+  border-radius: 50%;
+  background-color: var(--thumb-fill);
+  cursor: pointer;
+}
+
+.range-input-wrapper input[type="range"]::-ms-thumb {
+  border: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  aspect-ratio: 1;
+  height: var(--thumb-height);
+  border-radius: 50%;
+  background-color: var(--thumb-fill);
+  cursor: pointer;
+}
+
+/* Styling (track) */
+
+.range-input-wrapper {
+  --track-height: var(--thumb-stroke-width);
+}
+
+.range-input-wrapper input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--track-height);
+  background: black;
+  border-radius: 5px;
+  border: 0.2px solid #010101;
+}
+
+.range-input-wrapper input[type="range"]:focus::-webkit-slider-runnable-track {
+  background: black;
+}
+
+.range-input-wrapper input[type="range"]::-moz-range-track {
+  height: var(--track-height);
+  cursor: pointer;
+  background: black;
+  border-radius: 5px;
+  border: 0.2px solid #010101;
+}
+
+.range-input-wrapper input[type="range"]::-ms-track {
+  height: var(--track-height);
+  cursor: pointer;
+  border-width: 16px 0;
+}
+.range-input-wrapper input[type="range"]::-ms-fill-lower {
+  background: #2a6495;
+  border: 0.2px solid #010101;
+  border-radius: 5px;
+}
+.range-input-wrapper input[type="range"]:focus::-ms-fill-lower {
+  background: black;
+}
+.range-input-wrapper input[type="range"]::-ms-fill-upper {
+  background: black;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+}
+.range-input-wrapper input[type="range"]:focus::-ms-fill-upper {
+  background: black;
+}
+
+/* Text (number) input part (actual input + "mm" */
+
+/* Number input reset */
+
+/* Remove arrows */
+
+/* Chrome, Safari, Edge, Opera */
+.range-input-value input::-webkit-outer-spin-button,
+.range-input-value input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.range-input-value input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.range-input-value input {
+  padding: 0;
+  flex-grow: 1;
+  text-align: right;
+  font-size: 1.2em;
+  border: 0;
+  font-weight: bold;
+}
+
+/* Styling */
+.range-input-value {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.3em;
+}
+
+/* "mm" */
+.range-input-value::after {
+  content: "mm";
 }
