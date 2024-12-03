@@ -61,11 +61,6 @@ const innerDepth = Dyn.sequence([
   modelDimensions.depth,
 ] as const).map(([wall, depth]) => depth - 2 * wall);
 
-const innerRadius = Dyn.sequence([
-  modelDimensions.wall,
-  modelDimensions.radius,
-] as const).map(([wall, radius]) => radius - wall);
-
 // When true, the back of the object should be shown
 const showBack = new Dyn(false);
 
@@ -146,8 +141,7 @@ DIMENSIONS.forEach((dim) =>
 
 // Download button
 const link = document.querySelector("a")!;
-link.innerText = "Download";
-link.download = "skadis-box.3mf";
+link.download = "skapa.3mf";
 
 // The dimension inputs
 const inputs = {
@@ -157,10 +151,6 @@ const inputs = {
   widthRange: document.querySelector("#width-range")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
   depthRange: document.querySelector("#depth-range")! as HTMLInputElement,
-  radius: document.querySelector("#radius")! as HTMLInputElement,
-  radiusRange: document.querySelector("#radius-range")! as HTMLInputElement,
-  wall: document.querySelector("#wall")! as HTMLInputElement,
-  bottom: document.querySelector("#bottom")! as HTMLInputElement,
 } as const;
 
 // Add change events to all dimension inputs
@@ -213,45 +203,7 @@ const inputs = {
   });
 });
 
-// radius
-(
-  [
-    [inputs.radius, "change"],
-    [inputs.radiusRange, "input"],
-  ] as const
-).forEach(([input, evnt]) => {
-  innerRadius.addListener((radius) => {
-    input.value = `${radius}`;
-  });
-  input.addEventListener(evnt, () => {
-    const outer = parseInt(input.value) + modelDimensions.wall.latest;
-    if (!Number.isNaN(outer)) modelDimensions.radius.send(outer);
-  });
-});
-
-// wall
-([[inputs.wall, "change"]] as const).forEach(([input, evnt]) => {
-  modelDimensions.wall.addListener((value) => {
-    input.value = `${value}`;
-  });
-  input.addEventListener(evnt, () => {
-    const value = parseInt(input.value);
-    if (!Number.isNaN(value)) modelDimensions.wall.send(value);
-  });
-});
-
-// bottom
-([[inputs.bottom, "change"]] as const).forEach(([input, evnt]) => {
-  modelDimensions.bottom.addListener((value) => {
-    input.value = `${value}`;
-  });
-  input.addEventListener(evnt, () => {
-    const value = parseInt(input.value);
-    if (!Number.isNaN(value)) modelDimensions.bottom.send(value);
-  });
-});
-
-document.querySelector("#flip")!.addEventListener("click", () => {
+document.querySelector("#canvas-container")!.addEventListener("click", () => {
   showBack.send(!showBack.latest);
 });
 

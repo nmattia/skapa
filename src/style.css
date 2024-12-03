@@ -15,6 +15,7 @@ body {
 
 section {
   display: grid;
+  gap: 2em;
 }
 
 @media (width > 900px) {
@@ -23,7 +24,7 @@ section {
   }
 }
 
-@media (width > 1200px) {
+@media (width > 1400px) {
   section {
     grid-template-columns: 2fr 1fr;
   }
@@ -47,6 +48,12 @@ canvas {
   }
 }
 
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 @media (width > 900px) {
   main {
     border-radius: 1px;
@@ -60,7 +67,7 @@ header {
 }
 
 footer {
-  margin-top: 5em;
+  margin-top: 7em;
   text-align: center;
 }
 
@@ -72,7 +79,7 @@ footer {
 
 @media (width < 600px) {
   #canvas-container {
-    height: 20em;
+    height: 22em;
   }
 }
 
@@ -86,6 +93,10 @@ footer {
 .range-input-wrapper {
   display: flex;
   gap: 1em;
+}
+
+.range-input-wrapper + .range-input-wrapper {
+  padding-top: 1em;
 }
 
 .range-input-wrapper label {
@@ -248,4 +259,53 @@ footer {
 /* "mm" */
 .range-input-value::after {
   content: "mm";
+}
+
+/* Download */
+.download {
+  --fore: white;
+  --back: black;
+
+  margin-top: 2em;
+  display: block;
+  text-align: center;
+  padding: 1em;
+  text-transform: uppercase;
+  color: var(--fore);
+  background-color: var(--back);
+  font-size: 1.2em;
+  font-weight: bold;
+  outline: 1px solid black;
+}
+
+.download:hover {
+  --fore: black;
+  --back: white;
+}
+
+.download,
+.download:visited {
+  text-decoration: none;
+  width: 60%;
+  margin: 2em auto 0;
+}
+
+footer a:link,
+footer a:visited {
+  text-decoration: underline;
+  color: black;
+}
+
+footer a:hover {
+  color: #aaaaaa;
+}
+
+footer a:link,
+footer a:visited {
+  text-decoration: none;
+  font-weight: bold;
+}
+
+footer a:hover {
+  text-decoration: underline;
 }
