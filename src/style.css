@@ -103,6 +103,10 @@ footer {
   min-width: 3em;
 }
 
+.range-input-wrapper input[type="number"]::selection {
+  background-color: #dddddd;
+}
+
 .range-input-wrapper input[type="range"] {
   margin: 0;
 }

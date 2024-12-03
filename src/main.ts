@@ -203,6 +203,14 @@ const inputs = {
   });
 });
 
+// Add select-all on input click
+(["height", "width", "depth"] as const).forEach((dim) => {
+  const input = inputs[dim];
+  input.addEventListener("focus", () => {
+    input.select();
+  });
+});
+
 document.querySelector("#canvas-container")!.addEventListener("click", () => {
   showBack.send(!showBack.latest);
 });
