@@ -58,7 +58,7 @@ export function exportManifold(manifold: Manifold): Blob {
 
     header: {
       unit: "millimeter",
-      title: "Parametric Skadis Box",
+      title: "skapa-ikea-skadis",
       description: "",
       application: "",
     },
