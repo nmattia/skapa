@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-const ANIM_DURATION = 0.3; // in seconds
+const ANIM_DURATION = 0.5; // in seconds
 
 type Animation = {
   clock: THREE.Clock; // clock started at the beginning of the animation
