@@ -24,12 +24,21 @@ const DIMENSIONS = [
   "bottom",
 ] as const;
 
-const START_HEIGHT = 50;
-const START_WIDTH = 80;
-const START_DEPTH = 60;
+// constants, all in outer dimensions (when applicable)
+
+// actual constants
 const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
+
+const START_HEIGHT = 50;
+const MIN_HEIGHT = 10; // height of a set of clips
+
+const START_WIDTH = 80;
+const MIN_WIDTH = 10 + 2 * START_RADIUS;
+
+const START_DEPTH = 60;
+const MIN_DEPTH = 20;
 
 /// STATE
 
@@ -167,7 +176,8 @@ const inputs = {
   });
   input.addEventListener(evnt, () => {
     const outer = parseInt(input.value) + modelDimensions.bottom.latest;
-    if (!Number.isNaN(outer)) modelDimensions.height.send(outer);
+    if (!Number.isNaN(outer))
+      modelDimensions.height.send(Math.max(outer, MIN_HEIGHT));
   });
 });
 
@@ -183,7 +193,8 @@ const inputs = {
   });
   input.addEventListener(evnt, () => {
     const outer = parseInt(input.value) + 2 * modelDimensions.wall.latest;
-    if (!Number.isNaN(outer)) modelDimensions.width.send(outer);
+    if (!Number.isNaN(outer))
+      modelDimensions.width.send(Math.max(outer, MIN_WIDTH));
   });
 });
 
@@ -199,7 +210,8 @@ const inputs = {
   });
   input.addEventListener(evnt, () => {
     const outer = parseInt(input.value) + 2 * modelDimensions.wall.latest;
-    if (!Number.isNaN(outer)) modelDimensions.depth.send(outer);
+    if (!Number.isNaN(outer))
+      modelDimensions.depth.send(Math.max(outer, MIN_DEPTH));
   });
 });
 
