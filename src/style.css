@@ -79,7 +79,7 @@ footer {
 
 @media (width < 600px) {
   #canvas-container {
-    height: 22em;
+    height: 18em;
   }
 }
 
@@ -96,7 +96,7 @@ footer {
 }
 
 .range-input-wrapper + .range-input-wrapper {
-  padding-top: 1em;
+  padding-top: 2em;
 }
 
 .range-input-wrapper label {
@@ -142,10 +142,18 @@ footer {
 /* Styling (thumb) */
 
 .range-input-wrapper {
-  --thumb-height: 0.5em;
+  --thumb-height: 1em;
   --thumb-fill: white;
   --thumb-stroke: black;
   --thumb-stroke-width: 0.2em;
+}
+
+/* For clumsy devices (phones, tables, in general anything without a mouse) make the thumbs
+ * a bit bigger */
+@media (hover: none) {
+  .range-input-wrapper {
+    --thumb-height: 2em;
+  }
 }
 
 .range-input-wrapper input[type="range"]::-webkit-slider-thumb {
@@ -255,9 +263,9 @@ footer {
 
 /* Styling */
 .range-input-value {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 0.3em;
+  display: flex;
+  gap: 0.3em;
+  align-items: center;
 }
 
 /* "mm" */
