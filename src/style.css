@@ -2,10 +2,24 @@
   font-family: system-ui;
 }
 
+html {
+  height: 100%;
+}
+
 body {
+  --gutter: 1em;
   max-width: 600px;
   margin: auto;
-  padding: 1em;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+
+  /* space out items & push footer to the bottom */
+  display: grid;
+  gap: 2em;
+  height: 100%;
+  grid-template-rows: auto 1fr auto;
 }
 @media (width > 900px) {
   body {
@@ -42,6 +56,11 @@ canvas {
 }
 
 @media (width < 600px) {
+  #part {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
   canvas {
     /* match body padding */
     --overflow: 1em;
@@ -50,6 +69,7 @@ canvas {
 
 main {
   display: flex;
+  max-height: 23em;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -67,14 +87,12 @@ header {
 }
 
 footer {
-  margin-top: 7em;
   text-align: center;
 }
 
 #canvas-container {
   height: 23em;
   position: relative;
-  margin-bottom: 3em;
 }
 
 @media (width < 600px) {
@@ -302,6 +320,16 @@ footer {
   margin: 2em auto 0;
 }
 
+/* Footer */
+
+footer {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 2em;
+  padding-top: 2em;
+}
+
 footer a:link,
 footer a:visited {
   text-decoration: underline;
@@ -320,4 +348,18 @@ footer a:visited {
 
 footer a:hover {
   text-decoration: underline;
+}
+
+footer a:has(svg):hover {
+  text-decoration: none;
+}
+
+footer ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  display: flex;
+  gap: 3em;
+  align-items: center;
+  justify-content: space-around;
 }
