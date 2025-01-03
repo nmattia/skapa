@@ -5,6 +5,8 @@ import manifold_wasm from "manifold-3d/manifold.wasm?url";
 
 // NOTE: all values are in mm
 
+export const CLIP_HEIGHT = 12;
+
 // Load manifold 3d
 class ManifoldModule {
   private static wasm: ManifoldToplevel | undefined = undefined;
@@ -96,8 +98,8 @@ async function clipRCrossSection(): Promise<CrossSection> {
 
 // The skadis clips, starting at the origin and pointing in -Z
 export async function clips(): Promise<[Manifold, Manifold]> {
-  const clipR = (await clipRCrossSection()).extrude(10);
-  const clipL = (await clipRCrossSection()).mirror([1, 0]).extrude(10);
+  const clipR = (await clipRCrossSection()).extrude(CLIP_HEIGHT);
+  const clipL = (await clipRCrossSection()).mirror([1, 0]).extrude(CLIP_HEIGHT);
 
   return [clipR, clipL];
 }
@@ -142,7 +144,7 @@ export async function box(
 
   // Same as horizontal, but vertically (slightly simpler because we always start
   // from 0 and we don't need to take the radius into account)
-  const H = height - 10; // Total height minus clip height
+  const H = height - CLIP_HEIGHT; // Total height minus clip height
   const gh = 40;
   const NV = Math.floor(H / gh + 1);
 

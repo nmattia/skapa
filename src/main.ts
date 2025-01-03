@@ -3,7 +3,7 @@ import "./style.css";
 import * as THREE from "three";
 import { Renderer } from "./rendering/renderer";
 
-import { box } from "./model/manifold";
+import { CLIP_HEIGHT, box } from "./model/manifold";
 import { mesh2geometry } from "./model/export";
 import { TMFLoader } from "./model/load";
 import { Animate } from "./animate";
@@ -31,8 +31,8 @@ const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
-const START_HEIGHT = 50;
-const MIN_HEIGHT = 10; // height of a set of clips
+const START_HEIGHT = 52;
+const MIN_HEIGHT = CLIP_HEIGHT; // height of a set of clips
 
 const START_WIDTH = 80;
 const MIN_WIDTH = 10 + 2 * START_RADIUS;
