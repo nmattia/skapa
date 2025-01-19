@@ -11,6 +11,8 @@ Generate 3D printable models for IKEA SKÅDIS pegboards.
 <br/>
 <br/>
 
+For print instructions & more, see [Printables page](https://www.printables.com/model/1133217-skapa-parametric-app-for-ikea-skadis-pegboard).
+
 ## Build
 
 ```
