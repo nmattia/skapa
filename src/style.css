@@ -339,6 +339,8 @@ footer {
   border: none;
   cursor: pointer;
   padding: 0;
+  /* iOS Safari user agent makes button text blue, so override and inherit parent's color */
+  color: inherit;
 }
 
 .stepper-input-wrapper button:disabled {
