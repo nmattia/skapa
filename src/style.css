@@ -108,6 +108,9 @@ footer {
   width: 100%;
 }
 
+/* CONTROLS */
+
+/* range */
 .range-input-wrapper {
   display: flex;
   gap: 1em;
@@ -289,6 +292,72 @@ footer {
 /* "mm" */
 .range-input-value::after {
   content: "mm";
+}
+
+/* Stepper */
+/* XXX mostly copied and adapted from "range" above */
+
+/* Remove arrows */
+
+/* Chrome, Safari, Edge, Opera */
+.stepper-input-value input::-webkit-outer-spin-button,
+.stepper-input-value input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.stepper-input-value input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.stepper-input-value input {
+  padding: 0;
+  flex-grow: 1;
+  text-align: center;
+  font-size: 1.2em;
+  border: 0;
+  font-weight: bold;
+}
+
+.stepper-input-wrapper + .range-input-wrapper {
+  padding-top: 2em;
+}
+
+.stepper-input-wrapper {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+
+.stepper-input-wrapper label {
+  min-width: 3em;
+}
+
+.stepper-input-wrapper button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  /* iOS Safari user agent makes button text blue, so override and inherit parent's color */
+  color: inherit;
+}
+
+.stepper-input-wrapper button:disabled {
+  color: darkgrey;
+}
+
+.stepper-input-wrapper button:hover:not(:disabled) > svg {
+  transform: scale(1.2);
+}
+
+.stepper-input-wrapper svg {
+  stroke-width: 0.15em;
+  height: 1.4em;
+}
+
+.stepper-input-wrapper button:active svg {
+  stroke-width: 0.2em;
 }
 
 /* Download */

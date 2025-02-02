@@ -31,8 +31,10 @@ const START_RADIUS = 6;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
-const START_HEIGHT = 52;
-const MIN_HEIGHT = CLIP_HEIGHT; // height of a set of clips
+const START_HEIGHT = 52; /* calculated manually from START_LEVELS */
+const START_LEVELS = 2;
+const MIN_LEVELS = 1;
+const MAX_LEVELS = 5;
 
 const START_WIDTH = 80;
 const MIN_WIDTH = 10 + 2 * START_RADIUS;
@@ -43,22 +45,20 @@ const MIN_DEPTH = 20;
 /// STATE
 
 // Dimensions of the model (outer, where applicable).
-// There are the dimensions of the 3MF file, as well as
+// These are the dimensions of the 3MF file, as well as
 // the _target_ dimensions for the animations, though may
 // be (ephemerally) different from the animation values.
+
+const levels = new Dyn(START_LEVELS); /* number of clip levels */
+
 const modelDimensions = {
-  height: new Dyn(START_HEIGHT),
+  height: levels.map((x) => x * CLIP_HEIGHT + (x - 1) * (40 - CLIP_HEIGHT)),
   width: new Dyn(START_WIDTH),
   depth: new Dyn(START_DEPTH),
   radius: new Dyn(START_RADIUS),
   wall: new Dyn(START_WALL),
   bottom: new Dyn(START_BOTTOM),
 };
-
-const innerHeight = Dyn.sequence([
-  modelDimensions.bottom,
-  modelDimensions.height,
-] as const).map(([bottom, height]) => height - bottom);
 
 const innerWidth = Dyn.sequence([
   modelDimensions.wall,
@@ -112,7 +112,11 @@ let centerCameraNeeded = true;
 
 // The mesh, updated in place when the geometry needs to change
 const mesh: THREE.Mesh = new THREE.Mesh(
-  new THREE.BoxGeometry(START_WIDTH, START_HEIGHT, START_DEPTH),
+  new THREE.BoxGeometry(
+    modelDimensions.width.latest,
+    modelDimensions.height.latest,
+    modelDimensions.depth.latest,
+  ),
   new THREE.Material(),
 );
 
@@ -154,8 +158,9 @@ link.download = "skapa.3mf";
 
 // The dimension inputs
 const inputs = {
-  height: document.querySelector("#height")! as HTMLInputElement,
-  heightRange: document.querySelector("#height-range")! as HTMLInputElement,
+  levels: document.querySelector("#levels")! as HTMLInputElement,
+  levelsPlus: document.querySelector("#levels-plus")! as HTMLButtonElement,
+  levelsMinus: document.querySelector("#levels-minus")! as HTMLButtonElement,
   width: document.querySelector("#width")! as HTMLInputElement,
   widthRange: document.querySelector("#width-range")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
@@ -164,21 +169,31 @@ const inputs = {
 
 // Add change events to all dimension inputs
 
-// height
-(
-  [
-    [inputs.height, "change"],
-    [inputs.heightRange, "input"],
-  ] as const
-).forEach(([input, evnt]) => {
-  innerHeight.addListener((height) => {
-    input.value = `${height}`;
+// height/levels
+([[inputs.levels, "change"]] as const).forEach(([input, evnt]) => {
+  levels.addListener((levels) => {
+    input.value = `${levels}`;
   });
   input.addEventListener(evnt, () => {
-    const outer = parseInt(input.value) + modelDimensions.bottom.latest;
-    if (!Number.isNaN(outer))
-      modelDimensions.height.send(Math.max(outer, MIN_HEIGHT));
+    const n = parseInt(input.value);
+    if (!Number.isNaN(n))
+      /* Clamp between min & max (currently synced manually with HTML) */
+      levels.send(Math.max(MIN_LEVELS, Math.min(n, MAX_LEVELS)));
   });
+});
+
+inputs.levelsPlus.addEventListener("click", () => {
+  const n = levels.latest + 1;
+  levels.send(Math.max(MIN_LEVELS, Math.min(n, MAX_LEVELS)));
+});
+levels.addListener((n) => {
+  inputs.levelsPlus.disabled = MAX_LEVELS <= n;
+  inputs.levelsMinus.disabled = n <= MIN_LEVELS;
+});
+
+inputs.levelsMinus.addEventListener("click", () => {
+  const n = levels.latest - 1;
+  levels.send(Math.max(1, Math.min(n, 5)));
 });
 
 // width
@@ -216,7 +231,7 @@ const inputs = {
 });
 
 // Add select-all on input click
-(["height", "width", "depth"] as const).forEach((dim) => {
+(["levels", "width", "depth"] as const).forEach((dim) => {
   const input = inputs[dim];
   input.addEventListener("focus", () => {
     input.select();
