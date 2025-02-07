@@ -69,6 +69,7 @@ export function exportManifold(manifold: Manifold): Blob {
   const files: Zippable = {};
 
   const fileForRelThumbnail = new FileForRelThumbnail();
+  fileForRelThumbnail.add3dModel("3D/3dmodel.model");
   files["3D/3dmodel.model"] = strToU8(model);
   files[fileForContentTypes.name] = strToU8(fileForContentTypes.content);
   files[fileForRelThumbnail.name] = strToU8(fileForRelThumbnail.content);
