@@ -4,7 +4,7 @@ Generate 3D printable models for IKEA SKÅDIS pegboards.
 
 <br/>
 <br/>
-<p align="center"><img width="370" alt="part animation" src="https://github.com/user-attachments/assets/ccfdd2a2-12fc-4086-95c1-4a27d3b31587"></p>
+<p align="center"><img width="370" alt="part animation" src="https://github.com/user-attachments/assets/97a93f71-3a79-4606-9f50-595713c82918"></p>
 
 <p align="center"><a href="https://skapa.build">🔗 https://skapa.build</a></p>
 
