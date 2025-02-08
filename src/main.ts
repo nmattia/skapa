@@ -336,20 +336,25 @@ btn.onclick = async () => {
 
     });
 
-    await reloadModel(20+32, 80, 50+15, 5, 3, 3);
+
+    const hMin = 12;
+    const hDelta = 40;
+    const hMax = hMin + hDelta;
+
+    await reloadModel(hMax, 80, 50+15, 5, 3, 3);
     renderer.resizeCanvas();
     renderer.centerCamera();
 
-    const delay = 100;
+    const delay = 75;
 
     for (var i = 0; i <= 15; i += 5) {
-        await reloadModel(20, 80, 50 + i, 5, 3, 3);
+        await reloadModel(hMin, 80, 50 + i, 5, 3, 3);
         renderer.render();
         gif.addFrame(canvas, { copy: true, delay});
     }
 
-    for (var i = 0; i <= 32; i += 4) {
-        await reloadModel(20 + i, 80, 50 + 15, 5, 3, 3);
+    for (var i = 0; i <= hDelta; i += 4) {
+        await reloadModel(hMin + i, 80, 50 + 15, 5, 3, 3);
         renderer.render();
         gif.addFrame(canvas, { copy: true, delay});
     }
@@ -357,13 +362,13 @@ btn.onclick = async () => {
     gif.addFrame(canvas, { copy: true, delay: 1000 });
 
     for (var i = 0; i <= 15; i += 5) {
-        await reloadModel(20 + 32, 80, 50 + 15 - i, 5, 3, 3);
+        await reloadModel(hMax, 80, 50 + 15 - i, 5, 3, 3);
         renderer.render();
         gif.addFrame(canvas, { copy: true, delay});
     }
 
-    for (var i = 0; i <= 32; i += 4) {
-        await reloadModel(20 + 32  - i, 80, 50, 5, 3, 3);
+    for (var i = 0; i <= hDelta; i += 4) {
+        await reloadModel(hMax  - i, 80, 50, 5, 3, 3);
         renderer.render();
         gif.addFrame(canvas, { copy: true, delay});
     }
