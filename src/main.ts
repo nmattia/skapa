@@ -8,6 +8,8 @@ import { mesh2geometry } from "./model/export";
 import { TMFLoader } from "./model/load";
 import { Animate } from "./animate";
 
+import GIF from "gif.js";
+
 import { Dyn } from "./twrl";
 
 /// CONSTANTS
@@ -249,7 +251,7 @@ document.querySelector("#canvas-container")!.addEventListener("click", () => {
 let modelLoadStarted: undefined | DOMHighResTimeStamp;
 
 function loop(nowMillis: DOMHighResTimeStamp) {
-  requestAnimationFrame(loop);
+  //requestAnimationFrame(loop);
 
   // Reload 3mf if necessary
   const newTmf = tmfLoader.take();
@@ -316,3 +318,63 @@ function loop(nowMillis: DOMHighResTimeStamp) {
 //
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
 loop(performance.now());
+
+
+
+const btn = document.querySelector("#dl-gif") as HTMLButtonElement;
+
+btn.onclick = async () => {
+
+    const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+
+
+
+    var gif = new GIF({
+        workers: 1,
+        workerScript: "/node_modules/gif.js/dist/gif.worker.js",
+        quality: 10,
+
+    });
+
+    await reloadModel(20+32, 80, 50+15, 5, 3, 3);
+    renderer.resizeCanvas();
+    renderer.centerCamera();
+
+    const delay = 100;
+
+    for (var i = 0; i <= 15; i += 5) {
+        await reloadModel(20, 80, 50 + i, 5, 3, 3);
+        renderer.render();
+        gif.addFrame(canvas, { copy: true, delay});
+    }
+
+    for (var i = 0; i <= 32; i += 4) {
+        await reloadModel(20 + i, 80, 50 + 15, 5, 3, 3);
+        renderer.render();
+        gif.addFrame(canvas, { copy: true, delay});
+    }
+
+    gif.addFrame(canvas, { copy: true, delay: 1000 });
+
+    for (var i = 0; i <= 15; i += 5) {
+        await reloadModel(20 + 32, 80, 50 + 15 - i, 5, 3, 3);
+        renderer.render();
+        gif.addFrame(canvas, { copy: true, delay});
+    }
+
+    for (var i = 0; i <= 32; i += 4) {
+        await reloadModel(20 + 32  - i, 80, 50, 5, 3, 3);
+        renderer.render();
+        gif.addFrame(canvas, { copy: true, delay});
+    }
+
+
+    gif.addFrame(canvas, { copy: true, delay: 1000 });
+
+    gif.on('finished', function(blob) {
+        window.open(URL.createObjectURL(blob));
+    });
+
+    gif.render();
+}
+

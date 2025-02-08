@@ -91,7 +91,7 @@ footer {
 }
 
 #canvas-container {
-  height: 23em;
+  aspect-ratio: 1;
   position: relative;
 }
 
