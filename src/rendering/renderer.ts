@@ -103,7 +103,7 @@ export class Renderer {
     return true;
   }
 
-  centerCamera() {
+  centerCamera(rotation: number) {
     const geometry = this.mesh.geometry;
     const geometryVerticies = geometry.getAttribute("position");
 
@@ -120,10 +120,14 @@ export class Renderer {
       (0.5 * (this.canvas.clientHeight - canvasParent.clientHeight)) /
       canvasParent.clientHeight;
 
+    // Create a "world" matrix which only includes the part rotation (we don't use the actual
+    // world matrix to avoid rotation animation messing with the centering)
+    const mat = new THREE.Matrix4();
+    mat.makeRotationAxis(new THREE.Vector3(0, 0, 1), rotation);
     const { left, right, top, bottom, far, near } = computeProjectedBounds(
       this.camera,
       geometryVerticies,
-      this.mesh.matrixWorld,
+      mat,
     );
 
     // Calculate a new viewHeight so that the part fits vertically (plus overflow)
@@ -171,8 +175,8 @@ export class Renderer {
       this.camera.right = left + width + width * overflowX;
     }
 
-    this.camera.far = far + 1;
-    this.camera.near = near - 1;
+    this.camera.near = near;
+    this.camera.far = far;
 
     this.camera.updateProjectionMatrix();
 
@@ -193,7 +197,7 @@ export class Renderer {
 const computeProjectedBounds = (
   camera: THREE.Camera,
   verticies: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
-  matrixWorld: THREE.Matrix4 /* the world matrix */,
+  mat: THREE.Matrix4 /* "World" matrix to apply to vertices */,
 ): {
   left: number;
   right: number;
@@ -206,16 +210,32 @@ const computeProjectedBounds = (
 
   // NOTE: the camera has X to the right, Y to the top, meaning NEGATIVE Z
   // to the far. For that reason some calculations for far & near are flipped.
+  // NOTE: The camera looks down the NEGATIVE Z axis!
   let [left, right] = [Infinity, -Infinity];
-  let [top, bottom] = [-Infinity, Infinity];
+  let [bottom, top] = [Infinity, -Infinity];
   let [near, far] = [Infinity, -Infinity];
+
+  // See https://github.com/nmattia/skapa/wiki/Camera-centering
+  const c = camera.position;
+  const n = new THREE.Vector3();
+  camera.getWorldDirection(n);
+  const b = c.x * n.x + c.y * n.y + c.z * n.z;
 
   // Iterate over all verticies in the model, keeping track of the min/max values of
   // projection (onto camera plane)
   for (let i = 0; i < verticies.count; i++) {
     // Load vertex & move to world coordinates (position & rotation)
     vertex.fromArray(verticies.array, i * verticies.itemSize);
-    vertex.applyMatrix4(matrixWorld);
+    vertex.applyMatrix4(mat); // Apply matrix to position vertex within world
+
+    // Distance to ration axis
+    const r = Math.sqrt(vertex.x * vertex.x + vertex.y * vertex.y);
+    // The part that actually changes from vertex to vertex
+    const x = r * Math.sqrt(1 - n.z * n.z);
+
+    // The 2 minima
+    const vz_1 = b - vertex.z * n.z + x;
+    const vz_2 = b - vertex.z * n.z - x;
 
     // Look at the vertex from the camera's perspective
     const v = camera.worldToLocal(vertex);
@@ -223,10 +243,10 @@ const computeProjectedBounds = (
     // Update mins & maxs
     left = Math.min(left, v.x);
     right = Math.max(right, v.x);
-    top = Math.max(top, v.y);
     bottom = Math.min(bottom, v.y);
-    near = Math.min(near, -v.z);
-    far = Math.max(far, -v.z);
+    top = Math.max(top, v.y);
+    near = Math.min(near, -vz_1, -vz_2);
+    far = Math.max(far, -vz_1, -vz_2);
   }
 
   return { left, right, top, bottom, near, far };
