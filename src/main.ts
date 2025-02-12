@@ -304,7 +304,7 @@ function loop(nowMillis: DOMHighResTimeStamp) {
   }
 
   if (centerCameraNeeded) {
-    renderer.centerCamera();
+    renderer.centerCamera(MESH_ROTATION_DELTA);
     centerCameraNeeded = false;
   }
 
