@@ -228,12 +228,12 @@ const computeProjectedBounds = (
     vertex.fromArray(verticies.array, i * verticies.itemSize);
     vertex.applyMatrix4(mat); // Apply matrix to position vertex within world
 
-    // Distance to ration axis
+    // Distance to rotation axis
     const r = Math.sqrt(vertex.x * vertex.x + vertex.y * vertex.y);
     // The part that actually changes from vertex to vertex
     const x = r * Math.sqrt(1 - n.z * n.z);
 
-    // The 2 minima
+    // The 2 extrema
     const vz_1 = b - vertex.z * n.z + x;
     const vz_2 = b - vertex.z * n.z - x;
 
