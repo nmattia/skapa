@@ -86,6 +86,11 @@ header {
   font-size: 2em;
 }
 
+header h1 {
+  /* shift to the left to work around gap and align with header */
+  margin-left: calc(-1 * 1em / 32);
+}
+
 footer {
   text-align: center;
 }
