@@ -120,6 +120,15 @@ const mesh: THREE.Mesh = new THREE.Mesh(
   new THREE.Material(),
 );
 
+// Center the camera around the mesh
+async function centerCamera() {
+  // Create a "world" matrix which only includes the part rotation (we don't use the actual
+  // world matrix to avoid rotation animation messing with the centering)
+  const mat = new THREE.Matrix4();
+  mat.makeRotationAxis(new THREE.Vector3(0, 0, 1), MESH_ROTATION_DELTA);
+  renderer.centerCameraAround(mesh, mat);
+}
+
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
 
@@ -304,7 +313,7 @@ function loop(nowMillis: DOMHighResTimeStamp) {
   }
 
   if (centerCameraNeeded) {
-    renderer.centerCamera(MESH_ROTATION_DELTA);
+    centerCamera();
     centerCameraNeeded = false;
   }
 

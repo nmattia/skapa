@@ -103,8 +103,8 @@ export class Renderer {
     return true;
   }
 
-  centerCamera(rotation: number) {
-    const geometry = this.mesh.geometry;
+  centerCameraAround(target: THREE.Mesh, mat: THREE.Matrix4) {
+    const geometry = target.geometry;
     const geometryVerticies = geometry.getAttribute("position");
 
     // Here we compute the overflow of the canvas relative to its parent element. The parent (container)
@@ -120,10 +120,6 @@ export class Renderer {
       (0.5 * (this.canvas.clientHeight - canvasParent.clientHeight)) /
       canvasParent.clientHeight;
 
-    // Create a "world" matrix which only includes the part rotation (we don't use the actual
-    // world matrix to avoid rotation animation messing with the centering)
-    const mat = new THREE.Matrix4();
-    mat.makeRotationAxis(new THREE.Vector3(0, 0, 1), rotation);
     const { left, right, top, bottom, far, near } = computeProjectedBounds(
       this.camera,
       geometryVerticies,
@@ -193,7 +189,8 @@ export class Renderer {
 }
 
 // Compute min & max of the verticies' projection onto the camera plane (coordinates in the
-// camera's coordinates)
+// camera's coordinates). The near/far (depth) is calculated such that the verticies can rotate 360 deg
+// around the Z axis and still be seen.
 const computeProjectedBounds = (
   camera: THREE.Camera,
   verticies: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
