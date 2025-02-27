@@ -40,6 +40,10 @@ export class Dyn<A> {
     this.latest = a;
   }
 
+  update(f: (a: A) => A) {
+    this.send(f(this.latest));
+  }
+
   static sequence<Ds, As extends Extract<Mutable<Ds>>>(vs: Ds): Dyn<As> {
     // @ts-ignore
     const seqed = new Dyn(vs.map((x) => x.latest)) as Dyn<As>;

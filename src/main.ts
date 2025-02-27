@@ -6,7 +6,7 @@ import { Renderer } from "./rendering/renderer";
 import { CLIP_HEIGHT, box } from "./model/manifold";
 import { mesh2geometry } from "./model/export";
 import { TMFLoader } from "./model/load";
-import { Animate } from "./animate";
+import { Animate, immediate } from "./animate";
 
 import { Dyn } from "./twrl";
 
@@ -70,8 +70,26 @@ const innerDepth = Dyn.sequence([
   modelDimensions.depth,
 ] as const).map(([wall, depth]) => depth - 2 * wall);
 
-// When true, the back of the object should be shown
-const showBack = new Dyn(false);
+// Current state of part positioning
+type PartPositionStatic = Extract<PartPosition, { tag: "static" }>;
+type PartPosition =
+  | {
+      tag: "static";
+      position: -1 | 0 | 1;
+    } /* no current mouse interaction. -1 and +1 are different as they represent different ways of showing the back of the part (CW or CCW) */
+  | {
+      tag: "will-move";
+      startRot: number;
+      startX: number;
+      clock: THREE.Clock;
+      was: Extract<PartPosition, { tag: "static" }>;
+    } /* mouse was down but hasn't moved yet */
+  | {
+      tag: "moving";
+      was: Extract<PartPosition, { tag: "will-move" }>;
+      x: number;
+    } /* mouse is moving */;
+const partPositioning = new Dyn<PartPosition>({ tag: "static", position: 0 });
 
 /// MODEL
 
@@ -132,14 +150,31 @@ async function centerCamera() {
 const MESH_ROTATION_DELTA = 0.15;
 mesh.rotation.z = MESH_ROTATION_DELTA;
 
-const renderer = new Renderer(document.querySelector("canvas")!, mesh);
+const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+const renderer = new Renderer(canvas, mesh);
 
 let reloadModelNeeded = true;
 
-// The animated rotation
+// The animated rotation, between -1 and 1
 const rotation = new Animate(0);
 
-showBack.addListener((val) => rotation.startAnimationTo(val ? 1 : 0));
+/* Bound the number betweek lo & hi (modulo) */
+const bound = (v: number, [lo, hi]: [number, number]): number =>
+  ((v - lo) % (hi - lo)) + lo;
+
+partPositioning.addListener((val) => {
+  if (val.tag === "static") {
+    rotation.startAnimationTo(val.position);
+  } else if (val.tag === "moving") {
+    /* the delta of width (between -1 and 1, so 2) per delta of (horizontal, CSS) pixel */
+    const dwdx = 2 / renderer.canvasWidth;
+    const v = (val.x - val.was.startX) * dwdx - val.was.startRot;
+    rotation.startAnimationTo(bound(v, [-1, 1]), immediate);
+  } else {
+    val.tag satisfies "will-move";
+    /* not movement yet, so not need to move */
+  }
+});
 
 /// ANIMATIONS
 
@@ -247,9 +282,95 @@ inputs.levelsMinus.addEventListener("click", () => {
   });
 });
 
-document.querySelector("#canvas-container")!.addEventListener("click", () => {
-  showBack.send(!showBack.latest);
-});
+const canvasContainer = document.querySelector(
+  "#canvas-container",
+) as HTMLDivElement;
+
+/* Start tracking mouse mouvement across the window */
+const trackMouseTarget = window;
+const trackMouseEvent = "mousemove";
+const trackMouse = (e: MouseEvent) => {
+  partPositioning.update((was) => {
+    if (was.tag === "will-move") {
+      return { tag: "moving", was, x: e.screenX };
+    } else if (was.tag === "moving") {
+      return { tag: "moving", was: was.was, x: e.screenX };
+    }
+
+    // This is technically not possible
+    was.tag satisfies "static";
+    return was;
+  });
+};
+
+const readyMouseTarget = canvasContainer;
+const readyMouseEvent = "mousedown";
+const readyMouse = (e: MouseEvent) => {
+  partPositioning.update((was) => {
+    if (was.tag === "will-move" || was.tag === "moving") {
+      return was;
+    } else {
+      const clock = new THREE.Clock();
+      clock.start();
+      return {
+        tag: "will-move",
+        startRot: rotation.current,
+        startX: e.screenX,
+        clock,
+        was,
+      };
+    }
+  });
+
+  trackMouseTarget.addEventListener(trackMouseEvent, trackMouse);
+  forgetMouseTarget.addEventListener(forgetMouseEvent, forgetMouse);
+};
+
+readyMouseTarget.addEventListener(readyMouseEvent, readyMouse);
+
+const forgetMouseTarget = window;
+const forgetMouseEvent = "mouseup";
+const forgetMouse = () => {
+  trackMouseTarget.removeEventListener(trackMouseEvent, trackMouse);
+  forgetMouseTarget.removeEventListener(forgetMouseEvent, forgetMouse);
+
+  /* toggle static positioning between front & back */
+  const toggle = (p: PartPositionStatic): PartPositionStatic =>
+    ({
+      [-1]: { tag: "static", position: 0 } as const,
+      [0]: { tag: "static", position: 1 } as const,
+      [1]: { tag: "static", position: 0 } as const,
+    })[p.position];
+
+  partPositioning.update((was) => {
+    if (was.tag === "will-move") {
+      // Mouse was down but didn't move, assume toggle
+      return toggle(was.was);
+    } else if (was.tag === "static") {
+      // Mouse was down and up, i.e. "clicked", toggle
+      return toggle(was);
+    } else {
+      // Mouse has moved
+      was.tag satisfies "moving";
+
+      // If the move was too short, assume toggle (jerk)
+      const elapsed = was.was.clock.getElapsedTime();
+      if (elapsed < 0.3) {
+        return toggle(was.was.was);
+      }
+
+      // Snap part to one of the static positions
+      const rounded = Math.round(bound(rotation.current, [-1, 1]));
+      if (rounded <= -1) {
+        return { tag: "static", position: -1 };
+      } else if (1 <= rounded) {
+        return { tag: "static", position: 1 };
+      } else {
+        return { tag: "static", position: 0 };
+      }
+    }
+  });
+};
 
 /// LOOP
 
