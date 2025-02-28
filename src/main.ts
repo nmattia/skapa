@@ -288,13 +288,17 @@ const canvasContainer = document.querySelector(
 
 /* Start tracking mouse mouvement across the window */
 const trackMouseTarget = window;
-const trackMouseEvent = "mousemove";
-const trackMouse = (e: MouseEvent) => {
+const trackMouseEvents = ["mousemove", "touchmove"] as const;
+const trackMouse = (e: MouseEvent | TouchEvent) => {
+  // NOTE: we can't check with e.g. 'instanceof TouchEvent' because some browsers (Safari)
+  // simply don't have the class on desktop
+  const screenX =
+    "changedTouches" in e ? e.changedTouches[0].screenX : e.screenX;
   partPositioning.update((was) => {
     if (was.tag === "will-move") {
-      return { tag: "moving", was, x: e.screenX };
+      return { tag: "moving", was, x: screenX };
     } else if (was.tag === "moving") {
-      return { tag: "moving", was: was.was, x: e.screenX };
+      return { tag: "moving", was: was.was, x: screenX };
     }
 
     // This is technically not possible
@@ -304,8 +308,11 @@ const trackMouse = (e: MouseEvent) => {
 };
 
 const readyMouseTarget = canvasContainer;
-const readyMouseEvent = "mousedown";
-const readyMouse = (e: MouseEvent) => {
+const readyMouseEvents = ["mousedown", "touchstart"] as const;
+const readyMouse = (e: MouseEvent | TouchEvent) => {
+  e.preventDefault(); // Prevent from scrolling the page while moving the part
+  const screenX =
+    "changedTouches" in e ? e.changedTouches[0].screenX : e.screenX;
   partPositioning.update((was) => {
     if (was.tag === "will-move" || was.tag === "moving") {
       return was;
@@ -315,24 +322,34 @@ const readyMouse = (e: MouseEvent) => {
       return {
         tag: "will-move",
         startRot: rotation.current,
-        startX: e.screenX,
+        startX: screenX,
         clock,
         was,
       };
     }
   });
 
-  trackMouseTarget.addEventListener(trackMouseEvent, trackMouse);
-  forgetMouseTarget.addEventListener(forgetMouseEvent, forgetMouse);
+  trackMouseEvents.forEach((evt) =>
+    trackMouseTarget.addEventListener(evt, trackMouse),
+  );
+  forgetMouseEvents.forEach((evt) =>
+    forgetMouseTarget.addEventListener(evt, forgetMouse),
+  );
 };
 
-readyMouseTarget.addEventListener(readyMouseEvent, readyMouse);
+readyMouseEvents.forEach((evt) =>
+  readyMouseTarget.addEventListener(evt, readyMouse),
+);
 
 const forgetMouseTarget = window;
-const forgetMouseEvent = "mouseup";
+const forgetMouseEvents = ["mouseup", "touchend"] as const;
 const forgetMouse = () => {
-  trackMouseTarget.removeEventListener(trackMouseEvent, trackMouse);
-  forgetMouseTarget.removeEventListener(forgetMouseEvent, forgetMouse);
+  trackMouseEvents.forEach((evt) =>
+    trackMouseTarget.removeEventListener(evt, trackMouse),
+  );
+  forgetMouseEvents.forEach((evt) =>
+    forgetMouseTarget.removeEventListener(evt, forgetMouse),
+  );
 
   /* toggle static positioning between front & back */
   const toggle = (p: PartPositionStatic): PartPositionStatic =>
