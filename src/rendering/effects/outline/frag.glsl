@@ -1,3 +1,6 @@
+// Fragment shader that renders outlines, adapted from:
+//   https://roystan.net/articles/outline-shader/
+
 varying vec2 vUv; // (x,y) with x,y in [0,1]
 uniform sampler2D tNormal;
 uniform sampler2D tDepth;
