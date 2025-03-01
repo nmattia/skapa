@@ -372,7 +372,8 @@ const forgetMouse = () => {
 
       // If the move was too short, assume toggle (jerk)
       const elapsed = was.was.clock.getElapsedTime();
-      if (elapsed < 0.3) {
+      const delta = Math.abs(was.x - was.was.startX);
+      if (elapsed < 0.3 && delta < 15) {
         return toggle(was.was.was);
       }
 
