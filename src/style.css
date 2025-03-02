@@ -410,6 +410,10 @@ footer a:visited {
   color: black;
 }
 
+footer a svg {
+  vertical-align: middle;
+}
+
 footer a:hover {
   color: #aaaaaa;
 }
@@ -417,7 +421,6 @@ footer a:hover {
 footer a:link,
 footer a:visited {
   text-decoration: none;
-  font-weight: bold;
 }
 
 footer a:hover {
