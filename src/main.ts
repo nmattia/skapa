@@ -80,13 +80,16 @@ type PartPosition =
   | {
       tag: "will-move";
       startRot: number;
-      startX: number;
+      startPos: [number, number];
       clock: THREE.Clock;
-      was: Extract<PartPosition, { tag: "static" }>;
+      lastStatic: Extract<PartPosition, { tag: "static" }>;
     } /* mouse was down but hasn't moved yet */
   | {
       tag: "moving";
-      was: Extract<PartPosition, { tag: "will-move" }>;
+      startRot: number;
+      startPos: [number, number];
+      lastStatic: Extract<PartPosition, { tag: "static" }>;
+      clock: THREE.Clock;
       x: number;
     } /* mouse is moving */;
 const partPositioning = new Dyn<PartPosition>({ tag: "static", position: 0 });
@@ -168,7 +171,7 @@ partPositioning.addListener((val) => {
   } else if (val.tag === "moving") {
     /* the delta of width (between -1 and 1, so 2) per delta of (horizontal, CSS) pixel */
     const dwdx = 2 / renderer.canvasWidth;
-    const v = (val.x - val.was.startX) * dwdx - val.was.startRot;
+    const v = (val.x - val.startPos[0]) * dwdx - val.startRot;
     rotation.startAnimationTo(bound(v, [-1, 1]), immediate);
   } else {
     val.tag satisfies "will-move";
@@ -282,55 +285,66 @@ inputs.levelsMinus.addEventListener("click", () => {
   });
 });
 
-const canvasContainer = document.querySelector(
-  "#canvas-container",
-) as HTMLDivElement;
+/* Extract X & Y from event (offsetX/Y) */
+const eventCoords = (e: MouseEvent | TouchEvent): [number, number] => {
+  // Simple case of a mouse event
+  if (e instanceof MouseEvent) {
+    return [e.offsetX, e.offsetY];
+  }
 
-/* Start tracking mouse mouvement across the window */
-const trackMouseTarget = window;
-const trackMouseEvents = ["mousemove", "touchmove"] as const;
-const trackMouse = (e: MouseEvent | TouchEvent) => {
-  // NOTE: we can't check with e.g. 'instanceof TouchEvent' because some browsers (Safari)
-  // simply don't have the class on desktop
-  const screenX =
-    "changedTouches" in e ? e.changedTouches[0].screenX : e.screenX;
-  partPositioning.update((was) => {
-    if (was.tag === "will-move") {
-      return { tag: "moving", was, x: screenX };
-    } else if (was.tag === "moving") {
-      return { tag: "moving", was: was.was, x: screenX };
-    }
+  // Now, try to extract values similar to offsetXY from a TouchEvent, if possible
+  const target = e.target;
+  if (!target) {
+    console.warn("Event doesn't have target", e);
+    return [0, 0];
+  }
 
-    // This is technically not possible
-    was.tag satisfies "static";
-    return was;
-  });
+  if (!(target instanceof HTMLElement)) {
+    console.warn("Event target is not an element", e);
+    return [0, 0];
+  }
+
+  const rect = target.getBoundingClientRect();
+  const x = e.targetTouches[0].clientX - rect.x;
+  const y = e.targetTouches[0].clientY - rect.y;
+  return [x, y];
 };
 
-const readyMouseTarget = canvasContainer;
+/* Get ready on first touchdown */
+
+const readyMouseTarget = canvas;
 const readyMouseEvents = ["mousedown", "touchstart"] as const;
 const readyMouse = (e: MouseEvent | TouchEvent) => {
+  renderer.render();
+
+  const [x, y] = eventCoords(e);
+  const [r, g, b, a] = renderer.getCanvasPixelColor([x, y]);
+
+  // The outline rendering renders transparent pixels outside of the part
+  // So if it's transparent, assume the user didn't want to touch/rotate the part
+  if (r === 0 && g === 0 && b === 0 && a === 0) {
+    return;
+  }
+
   e.preventDefault(); // Prevent from scrolling the page while moving the part
-  const screenX =
-    "changedTouches" in e ? e.changedTouches[0].screenX : e.screenX;
-  partPositioning.update((was) => {
-    if (was.tag === "will-move" || was.tag === "moving") {
-      return was;
+  partPositioning.update((val) => {
+    if (val.tag === "will-move" || val.tag === "moving") {
+      return val;
     } else {
       const clock = new THREE.Clock();
       clock.start();
       return {
         tag: "will-move",
         startRot: rotation.current,
-        startX: screenX,
+        startPos: [x, y],
         clock,
-        was,
+        lastStatic: val,
       };
     }
   });
 
   trackMouseEvents.forEach((evt) =>
-    trackMouseTarget.addEventListener(evt, trackMouse),
+    trackMouseTarget.addEventListener(evt, trackMouse, { passive: false }),
   );
   forgetMouseEvents.forEach((evt) =>
     forgetMouseTarget.addEventListener(evt, forgetMouse),
@@ -340,6 +354,32 @@ const readyMouse = (e: MouseEvent | TouchEvent) => {
 readyMouseEvents.forEach((evt) =>
   readyMouseTarget.addEventListener(evt, readyMouse),
 );
+
+/* Start tracking mouse mouvement across the window */
+const trackMouseTarget = window;
+const trackMouseEvents = ["mousemove", "touchmove"] as const;
+const trackMouse = (e: MouseEvent | TouchEvent) => {
+  const [x] = eventCoords(e);
+
+  partPositioning.update((val) => {
+    if (val.tag === "will-move" || val.tag === "moving") {
+      return {
+        tag: "moving",
+        x,
+
+        startPos: val.startPos,
+        startRot: val.startRot,
+        lastStatic: val.lastStatic,
+        clock: val.clock,
+      };
+    }
+
+    // This is technically not possible, unless the browser sends events
+    // in incorrect order
+    val.tag satisfies "static";
+    return val;
+  });
+};
 
 const forgetMouseTarget = window;
 const forgetMouseEvents = ["mouseup", "touchend"] as const;
@@ -362,7 +402,7 @@ const forgetMouse = () => {
   partPositioning.update((was) => {
     if (was.tag === "will-move") {
       // Mouse was down but didn't move, assume toggle
-      return toggle(was.was);
+      return toggle(was.lastStatic);
     } else if (was.tag === "static") {
       // Mouse was down and up, i.e. "clicked", toggle
       return toggle(was);
@@ -371,10 +411,10 @@ const forgetMouse = () => {
       was.tag satisfies "moving";
 
       // If the move was too short, assume toggle (jerk)
-      const elapsed = was.was.clock.getElapsedTime();
-      const delta = Math.abs(was.x - was.was.startX);
+      const elapsed = was.clock.getElapsedTime();
+      const delta = Math.abs(was.x - was.startPos[0]);
       if (elapsed < 0.3 && delta < 15) {
-        return toggle(was.was.was);
+        return toggle(was.lastStatic);
       }
 
       // Snap part to one of the static positions

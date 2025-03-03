@@ -44,7 +44,6 @@ canvas {
   position: absolute;
   left: calc(-1 * var(--overflow));
   top: calc(-1 * var(--overflow));
-  z-index: -1;
   width: calc(100% + 2 * var(--overflow));
   height: calc(100% + 2 * var(--overflow));
 }

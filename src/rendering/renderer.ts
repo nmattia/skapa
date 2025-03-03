@@ -21,6 +21,20 @@ export class Renderer {
 
   public thickenPass: ThickenPass;
 
+  /* Get the pixel color at position (input should be element's offsetX/Y coords) */
+  getCanvasPixelColor(pos: [number, number]): [number, number, number, number] {
+    const rt = this.composer.writeBuffer;
+    const [x, y] = [
+      pos[0] * window.devicePixelRatio,
+      pos[1] * window.devicePixelRatio,
+    ];
+
+    const buf = new Uint8Array(4);
+    /* since the input is offsetX/Y with origin in top-left, we invert Y */
+    this.renderer.readRenderTargetPixels(rt, x, rt.height - y, 1, 1, buf);
+    return [buf[0], buf[1], buf[2], buf[3]];
+  }
+
   constructor(canvas: HTMLCanvasElement, mesh: THREE.Mesh) {
     this.canvas = canvas;
     this.canvasWidth = 0;
