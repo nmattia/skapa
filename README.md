@@ -33,9 +33,11 @@ The tool runs as a webapp, built with vanillajs, using [ThreeJS](https://threejs
 Anyone with a 3D printer can download and print the physical parts.
 
 1. Go to https://skapa.build,
-2. Tweak the model to your liking,
-3. Hit download,
-4. Follow the print instructions on the [Printables page](https://www.printables.com/model/1133217-skapa-parametric-app-for-ikea-skadis-pegboard).
+1. Tweak the model to your liking,
+1. Hit download and open the model in your favorite slicer,
+1. Slice with 0.2mm layer height and enable auto-generated supports.
+
+For more info, see the [Printables page](https://www.printables.com/model/1133217-skapa-parametric-app-for-ikea-skadis-pegboard).
 
 ### Build the app
 
