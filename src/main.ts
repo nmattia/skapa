@@ -123,7 +123,8 @@ Dyn.sequence([
   modelDimensions.wall,
   modelDimensions.bottom,
 ] as const).addListener(([h, w, d, r, wa, bo]) => {
-  tmfLoader.load(box(h, w, d, r, wa, bo));
+  const filename = `skapa-${w}-${d}-${h}.3mf`;
+  tmfLoader.load(box(h, w, d, r, wa, bo), filename);
 });
 
 /// RENDER
@@ -201,7 +202,6 @@ DIMENSIONS.forEach((dim) =>
 
 // Download button
 const link = document.querySelector("a")!;
-link.download = "skapa.3mf";
 
 // The dimension inputs
 const inputs = {
@@ -443,7 +443,8 @@ function loop(nowMillis: DOMHighResTimeStamp) {
   const newTmf = tmfLoader.take();
   if (newTmf !== undefined) {
     // Update the download link
-    link.href = URL.createObjectURL(newTmf);
+    link.href = URL.createObjectURL(newTmf.blob);
+    link.download = newTmf.filename;
   }
 
   // Handle rotation animation
