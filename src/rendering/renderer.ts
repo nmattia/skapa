@@ -194,7 +194,7 @@ export class Renderer {
     const height = top - bottom;
     const maxDim = Math.sqrt(width * width + height * height);
     // The camera was moved/updated, so recompute the thickness of the outline
-    this.thickenPass.setThickness((100 * window.devicePixelRatio) / maxDim);
+    this.thickenPass.setThickness((150 * window.devicePixelRatio) / maxDim);
   }
 
   render() {
