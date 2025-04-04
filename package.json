@@ -10,13 +10,17 @@
     "format": "prettier ./src ./index.html -w"
   },
   "devDependencies": {
+    "@types/gif.js": "^0.2.5",
     "@types/three": "0.173",
     "typescript": "5.7",
     "vite": "^6.2.5"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@jscadui/3mf-export": "0.5.0",
     "fflate": "0.8",
+    "gif.js": "^0.2.0",
     "manifold-3d": "3.0",
     "prettier": "3.5",
     "three": "0.173"

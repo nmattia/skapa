@@ -8,6 +8,8 @@ import { mesh2geometry } from "./model/export";
 import { TMFLoader } from "./model/load";
 import { Animate, immediate } from "./animate";
 
+import GIF from "gif.js";
+
 import { Dyn } from "./twrl";
 
 /// CONSTANTS
@@ -437,7 +439,7 @@ const forgetMouse = () => {
 let modelLoadStarted: undefined | DOMHighResTimeStamp;
 
 function loop(nowMillis: DOMHighResTimeStamp) {
-  requestAnimationFrame(loop);
+  //requestAnimationFrame(loop);
 
   // Reload 3mf if necessary
   const newTmf = tmfLoader.take();
@@ -505,3 +507,61 @@ function loop(nowMillis: DOMHighResTimeStamp) {
 //
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
 loop(performance.now());
+
+const btn = document.querySelector("#dl-gif") as HTMLButtonElement;
+
+btn.onclick = async () => {
+  const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+
+  var gif = new GIF({
+    workers: 1,
+    workerScript: "/node_modules/gif.js/dist/gif.worker.js",
+    quality: 10,
+  });
+
+  const hMin = 12;
+  const hDelta = 40;
+  const hMax = hMin + hDelta;
+
+  await reloadModel(hMax, 80, 50 + 15, 5, 3, 3);
+  renderer.resizeCanvas();
+  centerCamera();
+
+  const delay = 75;
+
+  for (var i = 0; i <= 15; i += 5) {
+    await reloadModel(hMin, 80, 50 + i, 5, 3, 3);
+    renderer.render();
+    gif.addFrame(canvas, { copy: true, delay });
+  }
+
+  for (var i = 0; i <= hDelta; i += 4) {
+    await reloadModel(hMin + i, 80, 50 + 15, 5, 3, 3);
+    renderer.render();
+    gif.addFrame(canvas, { copy: true, delay });
+  }
+
+  gif.addFrame(canvas, { copy: true, delay: 1000 });
+
+  for (var i = 0; i <= 15; i += 5) {
+    await reloadModel(hMax, 80, 50 + 15 - i, 5, 3, 3);
+    renderer.render();
+    gif.addFrame(canvas, { copy: true, delay });
+  }
+
+  for (var i = 0; i <= hDelta; i += 4) {
+    await reloadModel(hMax - i, 80, 50, 5, 3, 3);
+    renderer.render();
+    gif.addFrame(canvas, { copy: true, delay });
+  }
+
+  gif.addFrame(canvas, { copy: true, delay: 1000 });
+
+  gif.on("finished", function (blob) {
+    link.href = URL.createObjectURL(blob);
+    link.download = "skapa.gif";
+    console.log("download ready");
+  });
+
+  gif.render();
+};

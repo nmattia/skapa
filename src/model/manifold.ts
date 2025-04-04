@@ -159,5 +159,5 @@ export async function box(
     }
   }
 
-  return res;
+  return res.translate(0, -depth / 2, 0);
 }

@@ -69,6 +69,11 @@ void main() {
 
     // Make alpha transparent if depth == 1 (hitting far plane) UNLESS
     // we are drawing an edge
+    if(depth == 1.) {
+        gl_FragColor.rgba = vec4(1.,1.,1.,1.);
+        return;
+    }
+
     float alpha = 1.0 - step(1.0, depth) + edge;
 
     // Color which we premultiply with alpha
