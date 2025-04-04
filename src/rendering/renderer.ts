@@ -46,7 +46,7 @@ export class Renderer {
 
     this.camera.position.x = 0;
     this.camera.position.y = 0;
-    this.camera.position.z = 300;
+    this.camera.position.z = 230;
 
     this.camera.lookAt(300, 300, 0);
 

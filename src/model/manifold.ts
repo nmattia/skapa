@@ -1,4 +1,4 @@
-import type { Vec2, CrossSection, Manifold } from "manifold-3d";
+import type { Vec2, Vec3, CrossSection, Manifold } from "manifold-3d";
 import type { ManifoldToplevel } from "manifold-3d";
 import init from "manifold-3d";
 import manifold_wasm from "manifold-3d/manifold.wasm?url";
@@ -97,11 +97,20 @@ async function clipRCrossSection(): Promise<CrossSection> {
 }
 
 // The skadis clips, starting at the origin and pointing in -Z
-export async function clips(): Promise<[Manifold, Manifold]> {
+// If chamfer is true, the bottom of the clip has a 45 deg chamfer
+// (to print without supports)
+export async function clips(
+  chamfer: boolean = false,
+): Promise<[Manifold, Manifold]> {
   const clipR = (await clipRCrossSection()).extrude(CLIP_HEIGHT);
   const clipL = (await clipRCrossSection()).mirror([1, 0]).extrude(CLIP_HEIGHT);
 
-  return [clipR, clipL];
+  if (!chamfer) {
+    return [clipR, clipL];
+  }
+
+  const n: Vec3 = [0, 1, 1]; /* a 45deg normal defining the trim plane */
+  return [clipR.trimByPlane(n, 0), clipL.trimByPlane(n, 0)];
 }
 
 // The box (without clips) with origin in the middle of the bottom face
@@ -150,10 +159,11 @@ export async function box(
 
   let res = await base(height, width, depth, radius, wall, bottom);
 
-  const [clipL, clipR] = await clips();
-
   for (let i = 0; i < N; i++) {
     for (let j = 0; j < NV; j++) {
+      // For all but the first level, chamfer the clips
+      const chamfer = j > 0;
+      const [clipL, clipR] = await clips(chamfer);
       res = res.add(clipL.translate(i * gw + dx, -depth / 2, j * gh));
       res = res.add(clipR.translate(i * gw + dx, -depth / 2, j * gh));
     }

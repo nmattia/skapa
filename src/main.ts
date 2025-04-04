@@ -151,7 +151,7 @@ async function centerCamera() {
   renderer.centerCameraAround(mesh, mat);
 }
 
-const MESH_ROTATION_DELTA = 0.15;
+const MESH_ROTATION_DELTA = 0.1;
 mesh.rotation.z = MESH_ROTATION_DELTA;
 
 const canvas = document.querySelector("canvas") as HTMLCanvasElement;
