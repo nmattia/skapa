@@ -35,7 +35,7 @@ Anyone with a 3D printer can download and print the physical parts.
 1. Go to https://skapa.build,
 1. Tweak the model to your liking,
 1. Hit download and open the model in your favorite slicer,
-1. Slice with 0.2mm layer height and enable auto-generated supports.
+1. Slice with 0.2mm layer height and no support material.
 
 For more info, see the [Printables page](https://www.printables.com/model/1133217-skapa-parametric-app-for-ikea-skadis-pegboard).
 
@@ -54,4 +54,3 @@ The roadmap is not set in stone and is mostly a list of ideas I've had to extend
 
 * Go beyond SKÅDIS pegboards and add 3d-printable accessories for more IKEA products
 * Advanced mode for customizable wall & bottom thickness
-* Support more clip styles, including support-free clips
