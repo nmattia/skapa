@@ -6,66 +6,77 @@ uniform sampler2D tNormal;
 uniform sampler2D tDepth;
 uniform vec2 texelSize;
 
-// Configuration values for edge detection
-const float scale = 2.0;
-const float halfScaleFloor = floor(scale * 0.5);
-const float halfScaleCeil = ceil(scale * 0.5);
-const float depthThreshold = 0.1;
-const float normalThreshold = 0.4;
+/* Both the depth & normal checks use a Sobel operator, which
+   is composed of two 3x3 kernels. For exact structure, see:
+        https://en.wikipedia.org/wiki/Sobel_operator
+*/
 
-struct RobertsCross
-{
-    vec2 bottomLeftUV;
-    vec2 topRightUV;
-    vec2 bottomRightUV;
-    vec2 topLeftUV;
-};
 
-RobertsCross makeCross() {
-    return RobertsCross (
-            vUv + texelSize * vec2(-1.0,-1.0) * halfScaleFloor,
-            vUv + texelSize * vec2(1.0,1.0) * halfScaleCeil,
-            vUv + texelSize * vec2(1.0,-1.0) * halfScaleFloor,
-            vUv + texelSize * vec2(-1.0,1.0) * halfScaleCeil
-            );
+float computeEdgeDepth() {
+
+    // Horizontal comparison
+    // [m] for minus (negative components and [p] for plus
+    float xm0 = texture(tDepth, vUv + texelSize * vec2(-1., +1.)).x;
+    float xm1 = texture(tDepth, vUv + texelSize * vec2(-1.,  0.)).x;
+    float xm2 = texture(tDepth, vUv + texelSize * vec2(-1., -1.)).x;
+
+    float xp0 = texture(tDepth, vUv + texelSize * vec2(+1., +1.)).x;
+    float xp1 = texture(tDepth, vUv + texelSize * vec2(+1.,  0.)).x;
+    float xp2 = texture(tDepth, vUv + texelSize * vec2(+1., -1.)).x;
+
+    // Vertical comparison
+    float ym0 = texture(tDepth, vUv + texelSize * vec2(-1., 1.)).x;
+    float ym1 = texture(tDepth, vUv + texelSize * vec2( 0., 1.)).x;
+    float ym2 = texture(tDepth, vUv + texelSize * vec2(+1., 1.)).x;
+
+    float yp0 = texture(tDepth, vUv + texelSize * vec2(-1., -1.)).x;
+    float yp1 = texture(tDepth, vUv + texelSize * vec2( 0., -1.)).x;
+    float yp2 = texture(tDepth, vUv + texelSize * vec2(+1., -1.)).x;
+
+    // Build the local operator and apply to samples
+    vec3 v121 = vec3(1., 2., 1.);
+
+    // Compute the magnitude
+    float Gx = dot(v121, vec3(xp0, xp1, xp2)) - dot(v121, vec3(xm0, xm1, xm2));
+    float Gy = dot(v121, vec3(yp0, yp1, yp2)) - dot(v121, vec3(ym0, ym1, ym2));
+    return sqrt(pow(Gx, 2.) + pow(Gy, 2.));
 }
 
-float computeEdgeDepth(RobertsCross cr) {
-    float depth0 = texture2D(tDepth, cr.bottomLeftUV).x;
-    float depth1 = texture2D(tDepth, cr.topRightUV).x;
-    float depth2 = texture2D(tDepth, cr.bottomRightUV).x;
-    float depth3 = texture2D(tDepth, cr.topLeftUV).x;
+float computeEdgeNormal() {
+    // Similar to Depth check, but using all three values for the normals
 
-    float depthFiniteDifference0 = depth1 - depth0;
-    float depthFiniteDifference1 = depth3 - depth2;
+    vec3 xm0 = texture(tNormal, vUv + texelSize * vec2(-1., +1.)).rgb;
+    vec3 xm1 = texture(tNormal, vUv + texelSize * vec2(-1.,  0.)).rgb;
+    vec3 xm2 = texture(tNormal, vUv + texelSize * vec2(-1., -1.)).rgb;
 
-    float edgeDepth = sqrt( pow(depthFiniteDifference0, 2.0)+ pow(depthFiniteDifference1,2.0));
+    vec3 xp0 = texture(tNormal, vUv + texelSize * vec2(+1., +1.)).rgb;
+    vec3 xp1 = texture(tNormal, vUv + texelSize * vec2(+1.,  0.)).rgb;
+    vec3 xp2 = texture(tNormal, vUv + texelSize * vec2(+1., -1.)).rgb;
 
-    return step(depthThreshold, edgeDepth);
-}
+    vec3 ym0 = texture(tNormal, vUv + texelSize * vec2(-1., 1.)).rgb;
+    vec3 ym1 = texture(tNormal, vUv + texelSize * vec2( 0., 1.)).rgb;
+    vec3 ym2 = texture(tNormal, vUv + texelSize * vec2(+1., 1.)).rgb;
 
-float computeEdgeNormal(RobertsCross cr) {
-    vec3 normal0 = texture2D(tNormal, cr.bottomLeftUV).rgb;
-    vec3 normal1 = texture2D(tNormal, cr.topRightUV).rgb;
-    vec3 normal2 = texture2D(tNormal, cr.bottomRightUV).rgb;
-    vec3 normal3 = texture2D(tNormal, cr.topLeftUV).rgb;
+    vec3 yp0 = texture(tNormal, vUv + texelSize * vec2(-1., -1.)).rgb;
+    vec3 yp1 = texture(tNormal, vUv + texelSize * vec2( 0., -1.)).rgb;
+    vec3 yp2 = texture(tNormal, vUv + texelSize * vec2(+1., -1.)).rgb;
 
-    vec3 normalFiniteDifference0 = normal1 - normal0;
-    vec3 normalFiniteDifference1 = normal3 - normal2;
+    vec3 v121 = vec3(1., 2., 1.);
+    vec3 Gx = vec3( dot(v121, xp0), dot(v121, xp1), dot(v121, xp2))
+        - vec3(dot(v121, xm0), dot(v121, xm1), dot(v121, xm2)                 );
 
-    float edgeNormal = sqrt(dot(normalFiniteDifference0, normalFiniteDifference0) + dot(normalFiniteDifference1, normalFiniteDifference1));
+    vec3 Gy = vec3( dot(v121, yp0), dot(v121, yp1), dot(v121, yp2))
+        - vec3(dot(v121, ym0), dot(v121, ym1), dot(v121, ym2)                 );
 
-    return step(normalThreshold, edgeNormal);
+    return sqrt(dot(Gx, Gx) + dot(Gy, Gy));
 }
 
 void main() {
-    RobertsCross cr = makeCross();
+    float edgeDepth = computeEdgeDepth();
+    float edgeNormal = computeEdgeNormal();
 
-    float edgeDepth = computeEdgeDepth(cr);
-    float edgeNormal = computeEdgeNormal(cr);
-
-    float edge = max(edgeDepth, edgeNormal);
-    float depth = texture2D(tDepth, vUv).x;
+    float edge = step(.25, max(edgeDepth, edgeNormal));
+    float depth = texture(tDepth, vUv).x;
 
     // Make alpha transparent if depth == 1 (hitting far plane) UNLESS
     // we are drawing an edge
