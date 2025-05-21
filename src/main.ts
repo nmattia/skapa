@@ -8,7 +8,7 @@ import { mesh2geometry } from "./model/export";
 import { TMFLoader } from "./model/load";
 import { Animate, immediate } from "./animate";
 
-import { Dyn } from "./twrl";
+import { Dyn } from "twrl";
 
 /// CONSTANTS
 

@@ -19,7 +19,8 @@
     "fflate": "0.8",
     "manifold-3d": "3.0",
     "prettier": "3.5",
-    "three": "0.173"
+    "three": "0.173",
+    "twrl": "0.0.2"
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "*"
