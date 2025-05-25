@@ -212,6 +212,8 @@ const inputs = {
   widthRange: document.querySelector("#width-range")! as HTMLInputElement,
   depth: document.querySelector("#depth")! as HTMLInputElement,
   depthRange: document.querySelector("#depth-range")! as HTMLInputElement,
+  radius: document.querySelector("#radius")! as HTMLInputElement,
+  radiusRange: document.querySelector("#radius-range")! as HTMLInputElement,
 } as const;
 
 // Add change events to all dimension inputs
@@ -277,8 +279,25 @@ inputs.levelsMinus.addEventListener("click", () => {
   });
 });
 
+// radius
+(
+  [
+    [inputs.radius, "change"],
+    [inputs.radiusRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  modelDimensions.radius.addListener((radius) => {
+    input.value = `${radius}`;
+  });
+  input.addEventListener(evnt, () => {
+    const radius = parseInt(input.value);
+    if (!Number.isNaN(radius))
+      modelDimensions.radius.send(Math.max(radius, 0));
+  });
+});
+
 // Add select-all on input click
-(["levels", "width", "depth"] as const).forEach((dim) => {
+(["levels", "width", "depth", "radius"] as const).forEach((dim) => {
   const input = inputs[dim];
   input.addEventListener("focus", () => {
     input.select();
