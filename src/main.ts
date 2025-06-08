@@ -10,6 +10,8 @@ import { Animate, immediate } from "./animate";
 
 import { Dyn } from "twrl";
 
+import { rangeControl } from "./controls";
+
 /// CONSTANTS
 
 // Align axes with 3D printer
@@ -38,9 +40,11 @@ const MAX_LEVELS = 5;
 
 const START_WIDTH = 80;
 const MIN_WIDTH = 10 + 2 * START_RADIUS;
+const MAX_WIDTH = 204; /* somewhat arbitrary */
 
 const START_DEPTH = 60;
 const MIN_DEPTH = 20;
+const MAX_DEPTH = 204; /* somewhat arbitrary */
 
 /// STATE
 
@@ -203,15 +207,35 @@ DIMENSIONS.forEach((dim) =>
 // Download button
 const link = document.querySelector("a")!;
 
+const controls = document.querySelector(".controls") as HTMLDivElement;
+
+const widthControl = rangeControl("width", {
+  name: "Width",
+  min: String(MIN_WIDTH - 2 * START_WALL /* convert from outer to inner */),
+  max: String(MAX_WIDTH - 2 * START_WALL),
+  sliderMin: String(MIN_WIDTH - 2 * START_WALL),
+  sliderMax: "100",
+});
+controls.append(widthControl.wrapper);
+
+const depthControl = rangeControl("depth", {
+  name: "Depth",
+  min: String(MIN_DEPTH - 2 * START_WALL /* convert from outer to inner */),
+  max: String(MAX_DEPTH - 2 * START_WALL),
+  sliderMin: String(MIN_DEPTH - 2 * START_WALL),
+  sliderMax: "100",
+});
+controls.append(depthControl.wrapper);
+
 // The dimension inputs
 const inputs = {
   levels: document.querySelector("#levels")! as HTMLInputElement,
   levelsPlus: document.querySelector("#levels-plus")! as HTMLButtonElement,
   levelsMinus: document.querySelector("#levels-minus")! as HTMLButtonElement,
-  width: document.querySelector("#width")! as HTMLInputElement,
-  widthRange: document.querySelector("#width-range")! as HTMLInputElement,
-  depth: document.querySelector("#depth")! as HTMLInputElement,
-  depthRange: document.querySelector("#depth-range")! as HTMLInputElement,
+  width: widthControl.input,
+  widthRange: widthControl.range,
+  depth: depthControl.input,
+  depthRange: depthControl.range,
 } as const;
 
 // Add change events to all dimension inputs

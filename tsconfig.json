@@ -22,7 +22,12 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Twrl */
+
+    "jsx": "react-jsx",
+    "jsxImportSource": "twrl"
   },
   "include": ["src", "demo"]
 }
