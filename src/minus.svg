@@ -1,0 +1,11 @@
+<svg
+  stroke="currentColor"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 128 128"
+  >
+  <path
+    vector-effect="non-scaling-stroke"
+    d="M32 64H96"
+    fill="none"
+  />
+</svg>

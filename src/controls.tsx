@@ -1,3 +1,6 @@
+import plusIcon from "./plus.svg?raw";
+import minusIcon from "./minus.svg?raw";
+
 export const rangeControl = (
   id: string,
   opts: {
@@ -42,3 +45,17 @@ export const rangeControl = (
 
   return { wrapper, range, input };
 };
+
+export const stepper = (
+  id: string,
+  opts: { min: string; max: string; label: string },
+) => (
+  <div className="stepper-input-wrapper">
+    <label htmlFor={id}>{opts.label}</label>
+    <button id={`${id}-minus`} innerHTML={minusIcon}></button>
+    <div className="stepper-input-value">
+      <input type="number" id={id} name={id} min={opts.min} max={opts.max} />
+    </div>
+    <button id={`${id}-plus`} innerHTML={plusIcon}></button>
+  </div>
+);
