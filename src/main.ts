@@ -10,7 +10,7 @@ import { Animate, immediate } from "./animate";
 
 import { Dyn } from "twrl";
 
-import { rangeControl } from "./controls";
+import { rangeControl, stepper } from "./controls";
 
 /// CONSTANTS
 
@@ -208,6 +208,13 @@ DIMENSIONS.forEach((dim) =>
 const link = document.querySelector("a")!;
 
 const controls = document.querySelector(".controls") as HTMLDivElement;
+
+const levelsControl = stepper("levels", {
+  label: "Levels",
+  min: String(MIN_LEVELS),
+  max: String(MAX_LEVELS),
+});
+controls.append(levelsControl);
 
 const widthControl = rangeControl("width", {
   name: "Width",
