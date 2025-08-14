@@ -25,6 +25,10 @@ body {
   body {
     max-width: 1200px;
   }
+
+  footer {
+    margin-right: 0 !important;
+  }
 }
 
 section {
@@ -399,7 +403,7 @@ footer {
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
-  padding-bottom: 2em;
+  padding-bottom: 1em;
   padding-top: 2em;
 }
 
@@ -435,7 +439,7 @@ footer ul {
   padding: 0;
   list-style-type: none;
   display: flex;
-  gap: 3em;
+  gap: 0.6em;
   align-items: center;
   justify-content: space-around;
 }
