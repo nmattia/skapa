@@ -1,5 +1,39 @@
 :root {
   font-family: system-ui;
+
+  /* Core palette (use these to theme the app) */
+  --color-bg: #ffffff; /* page background */
+  --color-text: #000000; /* main text */
+  --color-foreground: #000000; /* primary UI foreground / range track */
+  --color-link: #000000; /* link color */
+  --color-link-hover: #aaaaaa;
+  --color-button-bg: #000000; /* download button background */
+  --color-button-fore: #ffffff; /* download button text */
+  --color-outline: transparent;
+  --color-selection: #dddddd; /* input selection */
+  --color-surface: #ffffff; /* surface for controls like thumb */
+  --color-accent: #2a6495; /* used for control active/fill states */
+}
+
+/* Respect user system preference for dark mode — override the core palette */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0b0b0b;
+    --color-text: #e6e6e6;
+    --color-foreground: #e6e6e6;
+    --color-link: #e6e6e6;
+    --color-link-hover: #bbbbbb;
+    --color-button-bg: #ffffff;
+    --color-button-fore: #000000;
+    --color-outline: #ffffff;
+    --color-selection: #333333;
+    --color-surface: #111111;
+    --color-accent: #2a6495;
+  }
+  /* Canvas is an image-like surface — invert to better match dark backgrounds */
+  #canvas-container {
+    filter: invert(1) hue-rotate(180deg);
+  }
 }
 
 html {
@@ -8,6 +42,8 @@ html {
 
 body {
   --gutter: 1em;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   max-width: 600px;
   margin: auto;
   padding-top: 0;
@@ -133,7 +169,7 @@ footer {
 }
 
 .range-input-wrapper input[type="number"]::selection {
-  background-color: #dddddd;
+  background-color: var(--color-selection);
 }
 
 .range-input-wrapper input[type="range"] {
@@ -172,8 +208,6 @@ footer {
 
 .range-input-wrapper {
   --thumb-height: 1em;
-  --thumb-fill: white;
-  --thumb-stroke: black;
   --thumb-stroke-width: 0.2em;
 }
 
@@ -186,11 +220,11 @@ footer {
 }
 
 .range-input-wrapper input[type="range"]::-webkit-slider-thumb {
-  outline: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  outline: var(--thumb-stroke-width) solid var(--color-text);
   aspect-ratio: 1;
   height: var(--thumb-height);
   border-radius: 50%;
-  background-color: var(--thumb-fill);
+  background-color: var(--color-surface);
   cursor: pointer;
 
   /*  needs to be specified in chrome (space between the top of the thumb & the top of the track) */
@@ -198,21 +232,21 @@ footer {
 }
 
 .range-input-wrapper input[type="range"]::-moz-range-thumb {
-  border: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  border: var(--thumb-stroke-width) solid var(--color-text);
   height: var(--thumb-height);
   /* aspect-ratio doesn't seem to work on FF */
   width: var(--thumb-height);
   border-radius: 50%;
-  background-color: var(--thumb-fill);
+  background-color: var(--color-surface);
   cursor: pointer;
 }
 
 .range-input-wrapper input[type="range"]::-ms-thumb {
-  border: var(--thumb-stroke-width) solid var(--thumb-stroke);
+  border: var(--thumb-stroke-width) solid var(--color-text);
   aspect-ratio: 1;
   height: var(--thumb-height);
   border-radius: 50%;
-  background-color: var(--thumb-fill);
+  background-color: var(--color-surface);
   cursor: pointer;
 }
 
@@ -224,19 +258,19 @@ footer {
 
 .range-input-wrapper input[type="range"]::-webkit-slider-runnable-track {
   height: var(--track-height);
-  background: black;
+  background: var(--color-foreground);
   border-radius: 5px;
   border: 0.2px solid #010101;
 }
 
 .range-input-wrapper input[type="range"]:focus::-webkit-slider-runnable-track {
-  background: black;
+  background: var(--color-foreground);
 }
 
 .range-input-wrapper input[type="range"]::-moz-range-track {
   height: var(--track-height);
   cursor: pointer;
-  background: black;
+  background: var(--color-foreground);
   border-radius: 5px;
   border: 0.2px solid #010101;
 }
@@ -247,20 +281,20 @@ footer {
   border-width: 16px 0;
 }
 .range-input-wrapper input[type="range"]::-ms-fill-lower {
-  background: #2a6495;
+  background: var(--color-accent);
   border: 0.2px solid #010101;
   border-radius: 5px;
 }
 .range-input-wrapper input[type="range"]:focus::-ms-fill-lower {
-  background: black;
+  background: var(--color-foreground);
 }
 .range-input-wrapper input[type="range"]::-ms-fill-upper {
-  background: black;
+  background: var(--color-foreground);
   border: 0.2px solid #010101;
   border-radius: 2.6px;
 }
 .range-input-wrapper input[type="range"]:focus::-ms-fill-upper {
-  background: black;
+  background: var(--color-foreground);
 }
 
 /* Text (number) input part (actual input + "mm" */
@@ -288,6 +322,8 @@ footer {
   font-size: 1.2em;
   border: 0;
   font-weight: bold;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* Styling */
@@ -326,6 +362,8 @@ footer {
   font-size: 1.2em;
   border: 0;
   font-weight: bold;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .stepper-input-wrapper + .range-input-wrapper {
@@ -370,26 +408,22 @@ footer {
 
 /* Download */
 .download {
-  --fore: white;
-  --back: black;
-  --outline: transparent;
-
   margin-top: 2em;
   display: block;
   text-align: center;
   padding: 1em;
   text-transform: uppercase;
-  color: var(--fore);
-  background-color: var(--back);
+  color: var(--color-button-fore);
+  background-color: var(--color-button-bg);
   font-size: 1.2em;
   font-weight: bold;
-  outline: 2px solid var(--outline);
+  outline: 2px solid var(--color-outline);
 }
 
 .download:hover {
-  --fore: black;
-  --back: white;
-  --outline: black;
+  color: var(--color-button-bg);
+  background-color: var(--color-button-fore);
+  outline-color: var(--color-button-gb);
 }
 
 .download,
@@ -410,7 +444,7 @@ footer {
 footer a:link,
 footer a:visited {
   text-decoration: underline;
-  color: black;
+  color: var(--link);
 }
 
 footer a svg {
@@ -418,7 +452,7 @@ footer a svg {
 }
 
 footer a:hover {
-  color: #aaaaaa;
+  color: var(--link-hover);
 }
 
 footer a:link,
