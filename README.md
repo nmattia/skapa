@@ -16,7 +16,7 @@
 
 The models can be customized and downloaded, and are meant to be then sliced and 3D printed (see [Printables page](https://www.printables.com/model/1133217-skapa-parametric-app-for-ikea-skadis-pegboard)).
 
-SKÅPA is a **passion project**, not a commercial product of any kind! I want to give myself the freedom to obsess over small details for hours or scrap entire features if necessary.
+SKÅPA is a **passion project**, not a commercial product of any kind! To learn about how it works and how it was built, read [this](https://nmattia.com/posts/2025-03-24-skapa-intro/).
 
 ### The name SKÅPA
 
