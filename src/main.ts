@@ -40,11 +40,11 @@ const MAX_LEVELS = 5;
 
 const START_WIDTH = 80;
 const MIN_WIDTH = 10 + 2 * START_RADIUS;
-const MAX_WIDTH = 204; /* somewhat arbitrary */
+const MAX_WIDTH = 304; /* somewhat arbitrary */
 
 const START_DEPTH = 60;
 const MIN_DEPTH = 20;
-const MAX_DEPTH = 204; /* somewhat arbitrary */
+const MAX_DEPTH = 304; /* somewhat arbitrary */
 
 /// STATE
 
