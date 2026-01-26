@@ -75,6 +75,7 @@ main {
   max-height: 30em;
   flex-direction: column;
   justify-content: space-between;
+  overflow: scroll;
 }
 
 @media (width > 900px) {
