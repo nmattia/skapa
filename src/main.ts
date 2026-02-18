@@ -30,6 +30,8 @@ const DIMENSIONS = [
 
 // actual constants
 const START_RADIUS = 6;
+const MIN_RADIUS = 0;
+const MAX_RADIUS = 20;
 const START_WALL = 2;
 const START_BOTTOM = 3;
 
@@ -234,6 +236,15 @@ const depthControl = rangeControl("depth", {
 });
 controls.append(depthControl.wrapper);
 
+const radiusControl = rangeControl("radius", {
+  name: "Corner Radius",
+  min: String(MIN_RADIUS),
+  max: String(MAX_RADIUS),
+  sliderMin: String(MIN_RADIUS),
+  sliderMax: String(MAX_RADIUS),
+});
+controls.append(radiusControl.wrapper);
+
 // The dimension inputs
 const inputs = {
   levels: document.querySelector("#levels")! as HTMLInputElement,
@@ -243,6 +254,8 @@ const inputs = {
   widthRange: widthControl.range,
   depth: depthControl.input,
   depthRange: depthControl.range,
+  radius: radiusControl.input,
+  radiusRange: radiusControl.range,
 } as const;
 
 // Add change events to all dimension inputs
@@ -308,8 +321,25 @@ inputs.levelsMinus.addEventListener("click", () => {
   });
 });
 
+// radius
+(
+  [
+    [inputs.radius, "change"],
+    [inputs.radiusRange, "input"],
+  ] as const
+).forEach(([input, evnt]) => {
+  modelDimensions.radius.addListener((radius) => {
+    input.value = `${radius}`;
+  });
+  input.addEventListener(evnt, () => {
+    const val = parseInt(input.value);
+    if (!Number.isNaN(val))
+      modelDimensions.radius.send(Math.max(MIN_RADIUS, Math.min(val, MAX_RADIUS)));
+  });
+});
+
 // Add select-all on input click
-(["levels", "width", "depth"] as const).forEach((dim) => {
+(["levels", "width", "depth", "radius"] as const).forEach((dim) => {
   const input = inputs[dim];
   input.addEventListener("focus", () => {
     input.select();
