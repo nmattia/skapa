@@ -31,18 +31,21 @@
     <header>
       <h1>SKÅPA</h1>
     </header>
-    <section>
+    <main>
+      <h2 class="hidden">Part Generator</h2>
       <div id="part">
         <div id="canvas-container">
-          <canvas></canvas>
+          <canvas aria-label="3D preview of the generated part">
+            3D Preview of the generated part. You might need to enable
+            JavaScript.</canvas
+          >
         </div>
       </div>
-      <main>
-        <div class="controls"></div>
-
-        <a class="download">Download 3MF</a>
-      </main>
-    </section>
+      <div id="panel">
+        <div id="controls" role="group" aria-label="Box dimensions"></div>
+        <a id="download">Download 3MF</a>
+      </div>
+    </main>
     <footer>
       <ul>
         <li>

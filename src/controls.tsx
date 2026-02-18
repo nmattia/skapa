@@ -18,10 +18,10 @@ export const rangeControl = (
   const range = (
     <input
       type="range"
-      tabIndex={1}
       id={`${id}-range`}
       min={opts.min}
       max={opts.max}
+      aria-label={`${opts.name} slider`}
     />
   ) as HTMLInputElement;
 
@@ -32,6 +32,7 @@ export const rangeControl = (
       name={id}
       min={opts.sliderMin}
       max={opts.sliderMax}
+      aria-label={opts.name}
     />
   ) as HTMLInputElement;
 
@@ -52,10 +53,20 @@ export const stepper = (
 ) => (
   <div className="stepper-input-wrapper">
     <label htmlFor={id}>{opts.label}</label>
-    <button id={`${id}-minus`} innerHTML={minusIcon}></button>
+    <button
+      type="button"
+      id={`${id}-minus`}
+      innerHTML={minusIcon}
+      aria-label="Remove level"
+    ></button>
     <div className="stepper-input-value">
       <input type="number" id={id} name={id} min={opts.min} max={opts.max} />
     </div>
-    <button id={`${id}-plus`} innerHTML={plusIcon}></button>
+    <button
+      type="button"
+      id={`${id}-plus`}
+      innerHTML={plusIcon}
+      aria-label="Add level"
+    ></button>
   </div>
 );
