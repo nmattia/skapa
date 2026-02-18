@@ -31,13 +31,13 @@ body {
   }
 }
 
-section {
+main {
   display: grid;
   gap: 4em;
 }
 
 @media (width > 1200px) {
-  section {
+  main {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -65,12 +65,12 @@ canvas {
 
   /* reduce gaps on very small screens */
   body,
-  section {
+  main {
     gap: 2em;
   }
 }
 
-main {
+#panel {
   display: flex;
   max-height: 30em;
   flex-direction: column;
@@ -78,7 +78,7 @@ main {
 }
 
 @media (width > 900px) {
-  main {
+  #panel {
     border-radius: 1px;
     outline-offset: -2px;
   }
@@ -114,6 +114,11 @@ footer {
   display: block;
   height: 2em;
   width: 100%;
+}
+
+/* mostly used for a11y-only elements like headings */
+.hidden {
+  display: none;
 }
 
 /* CONTROLS */
@@ -152,10 +157,6 @@ footer {
 
 .range-input-wrapper input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-}
-
-.range-input-wrapper input[type="range"]:focus {
-  outline: none; /* Removes the blue border. */
 }
 
 .range-input-wrapper input[type="range"]::-ms-track {
@@ -369,7 +370,7 @@ footer {
 }
 
 /* Download */
-.download {
+#download {
   --fore: white;
   --back: black;
   --outline: transparent;
@@ -386,14 +387,14 @@ footer {
   outline: 2px solid var(--outline);
 }
 
-.download:hover {
+#download:hover {
   --fore: black;
   --back: white;
   --outline: black;
 }
 
-.download,
-.download:visited {
+#download,
+#download:visited {
   text-decoration: none;
 }
 

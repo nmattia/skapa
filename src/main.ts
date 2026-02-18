@@ -207,7 +207,7 @@ DIMENSIONS.forEach((dim) =>
 // Download button
 const link = document.querySelector("a")!;
 
-const controls = document.querySelector(".controls") as HTMLDivElement;
+const controls = document.querySelector("#controls") as HTMLDivElement;
 
 const levelsControl = stepper("levels", {
   label: "Levels",
