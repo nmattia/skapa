@@ -63,6 +63,10 @@ section#about {
     --fore: white;
     --back: black;
   }
+
+  p {
+    text-wrap: balance;
+  }
 }
 
 @media (width > 1200px) {
@@ -71,8 +75,8 @@ section#about {
   }
   section#about {
     /* on large screens give some more breathing room */
-    margin-top: 8em;
-    gap: 4em;
+    margin-top: 10em;
+    gap: 5em;
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
