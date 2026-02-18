@@ -21,6 +21,7 @@ body {
   height: 100%;
   grid-template-rows: auto 1fr auto;
 }
+
 @media (width > 1200px) {
   body {
     max-width: 1200px;
@@ -31,14 +32,52 @@ body {
   }
 }
 
-main {
+section#generator {
   display: grid;
   gap: 4em;
 }
 
+section#about {
+  margin-top: 6em;
+  display: grid;
+  gap: 2em;
+
+  & h3 {
+    margin-top: 0;
+  }
+
+  /* Some link styling */
+  a {
+    --fore: inherit;
+    --back: transparent;
+
+    color: var(--fore);
+    background-color: var(--back);
+  }
+
+  a:hover {
+    --back: lightgrey;
+  }
+
+  a:active {
+    --fore: white;
+    --back: black;
+  }
+
+  p {
+    text-wrap: balance;
+  }
+}
+
 @media (width > 1200px) {
-  main {
+  section#generator {
     grid-template-columns: 1fr 1fr;
+  }
+  section#about {
+    /* on large screens give some more breathing room */
+    margin-top: 10em;
+    gap: 5em;
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
@@ -64,8 +103,7 @@ canvas {
   }
 
   /* reduce gaps on very small screens */
-  body,
-  main {
+  section#generator {
     gap: 2em;
   }
 }
