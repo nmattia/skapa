@@ -32,19 +32,84 @@
       <h1>SKÅPA</h1>
     </header>
     <main>
-      <h2 class="hidden">Part Generator</h2>
-      <div id="part">
-        <div id="canvas-container">
-          <canvas aria-label="3D preview of the generated part">
-            3D Preview of the generated part. You might need to enable
-            JavaScript.</canvas
-          >
+      <section id="generator">
+        <h2 class="hidden">Part Generator</h2>
+        <div id="part">
+          <div id="canvas-container">
+            <canvas aria-label="3D preview of the generated part">
+              3D Preview of the generated part. You might need to enable
+              JavaScript.</canvas
+            >
+          </div>
         </div>
-      </div>
-      <div id="panel">
-        <div id="controls" role="group" aria-label="Box dimensions"></div>
-        <a id="download">Download 3MF</a>
-      </div>
+        <div id="panel">
+          <div id="controls" role="group" aria-label="Box dimensions"></div>
+          <a id="download">Download 3MF</a>
+        </div>
+      </section>
+      <section id="about">
+        <h2 class="hidden">About</h2>
+
+        <section>
+          <h3>Usage</h3>
+          <p>
+            SKÅPA is a browser-based application that generates 3D-printable
+            parts. It focuses on accessories for the IKEA SKÅDIS pegboard
+            system. Specify dimensions and download the generated model. Slice
+            with no supports and use 0.2&nbsp;—&nbsp;0.4 mm of layer height.
+          </p>
+        </section>
+
+        <section>
+          <h3>Implementation</h3>
+          <p>
+            SKÅPA is a client-side web application. Models are generated
+            in-browser using
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://github.com/elalish/manifold"
+              >manifold</a
+            >. Rendering is implemented with a custom
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://threejs.org/"
+              >Three.js</a
+            >
+            effects pipeline. The app is built using the experimental Twrl
+            framework. All source code is available on GitHub:
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://github.com/nmattia/skapa"
+              >nmattia/skapa</a
+            >.
+          </p>
+        </section>
+
+        <section>
+          <h3>Author</h3>
+          <p>
+            SKÅPA was created by
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://nmattia.com"
+              >Nicolas Mattia</a
+            >, a Swiss (not Swedish) software engineer. He works on Web
+            graphics, developer tooling and embedded gadgets. He also writes on
+            various topics, including on
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://nmattia.com/posts/2025-03-24-skapa-intro/"
+              >SKÅPA</a
+            >
+            itself.
+          </p>
+        </section>
+      </section>
     </main>
     <footer>
       <ul>
