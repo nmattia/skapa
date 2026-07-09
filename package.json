@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/three": "0.173",
     "typescript": "5.7",
-    "vite": "^6.2.5"
+    "vite": "^6.4.3"
   },
   "dependencies": {
     "@jscadui/3mf-export": "0.5.0",
