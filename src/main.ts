@@ -75,28 +75,27 @@ const innerDepth = Dyn.sequence([
 ] as const).map(([wall, depth]) => depth - 2 * wall);
 
 // Current state of part positioning
-type PartPositionStatic = Extract<PartPosition, { tag: "static" }>;
 type PartPosition =
   | {
       tag: "static";
-      position: -1 | 0 | 1;
-    } /* no current mouse interaction. -1 and +1 are different as they represent different ways of showing the back of the part (CW or CCW) */
+    } /* no current mouse interaction */
   | {
       tag: "will-move";
-      startRot: number;
+      startRotZ: number;
+      startRotX: number;
       startPos: [number, number];
       clock: THREE.Clock;
-      lastStatic: Extract<PartPosition, { tag: "static" }>;
     } /* mouse was down but hasn't moved yet */
   | {
       tag: "moving";
-      startRot: number;
+      startRotZ: number;
+      startRotX: number;
       startPos: [number, number];
-      lastStatic: Extract<PartPosition, { tag: "static" }>;
       clock: THREE.Clock;
       x: number;
+      y: number;
     } /* mouse is moving */;
-const partPositioning = new Dyn<PartPosition>({ tag: "static", position: 0 });
+const partPositioning = new Dyn<PartPosition>({ tag: "static" });
 
 /// MODEL
 
@@ -163,25 +162,23 @@ const renderer = new Renderer(canvas, mesh);
 
 let reloadModelNeeded = true;
 
-// The animated rotation, between -1 and 1
-const rotation = new Animate(0);
-
-/* Bound the number betweek lo & hi (modulo) */
-const bound = (v: number, [lo, hi]: [number, number]): number =>
-  ((v - lo) % (hi - lo)) + lo;
+// The animated rotations (horizontal and vertical)
+const rotationZ = new Animate(0); // horizontal drag -> Z axis rotation
+const rotationX = new Animate(0); // vertical drag -> X axis rotation
 
 partPositioning.addListener((val) => {
-  if (val.tag === "static") {
-    rotation.startAnimationTo(val.position);
-  } else if (val.tag === "moving") {
-    /* the delta of width (between -1 and 1, so 2) per delta of (horizontal, CSS) pixel */
-    const dwdx = 2 / renderer.canvasWidth;
-    const v = (val.x - val.startPos[0]) * dwdx - val.startRot;
-    rotation.startAnimationTo(bound(v, [-1, 1]), immediate);
-  } else {
-    val.tag satisfies "will-move";
-    /* not movement yet, so not need to move */
+  if (val.tag === "moving") {
+    /* Rotation sensitivity: full canvas width/height = 1 full rotation (2*PI) */
+    const dzPerPixel = 2 / renderer.canvasWidth;
+    const dxPerPixel = 2 / renderer.canvasHeight;
+
+    const newRotZ = (val.x - val.startPos[0]) * dzPerPixel + val.startRotZ;
+    const newRotX = (val.y - val.startPos[1]) * dxPerPixel + val.startRotX;
+
+    rotationZ.startAnimationTo(newRotZ, immediate);
+    rotationX.startAnimationTo(newRotX, immediate);
   }
+  /* static and will-move: no rotation change needed */
 });
 
 /// ANIMATIONS
@@ -366,10 +363,10 @@ const readyMouse = (e: MouseEvent | TouchEvent) => {
       clock.start();
       return {
         tag: "will-move",
-        startRot: rotation.current,
+        startRotZ: rotationZ.current,
+        startRotX: rotationX.current,
         startPos: [x, y],
         clock,
-        lastStatic: val,
       };
     }
   });
@@ -390,17 +387,17 @@ readyMouseEvents.forEach((evt) =>
 const trackMouseTarget = window;
 const trackMouseEvents = ["mousemove", "touchmove"] as const;
 const trackMouse = (e: MouseEvent | TouchEvent) => {
-  const [x] = eventCoords(e);
+  const [x, y] = eventCoords(e);
 
   partPositioning.update((val) => {
     if (val.tag === "will-move" || val.tag === "moving") {
       return {
         tag: "moving",
         x,
-
+        y,
         startPos: val.startPos,
-        startRot: val.startRot,
-        lastStatic: val.lastStatic,
+        startRotZ: val.startRotZ,
+        startRotX: val.startRotX,
         clock: val.clock,
       };
     }
@@ -422,43 +419,8 @@ const forgetMouse = () => {
     forgetMouseTarget.removeEventListener(evt, forgetMouse),
   );
 
-  /* toggle static positioning between front & back */
-  const toggle = (p: PartPositionStatic): PartPositionStatic =>
-    ({
-      [-1]: { tag: "static", position: 0 } as const,
-      [0]: { tag: "static", position: 1 } as const,
-      [1]: { tag: "static", position: 0 } as const,
-    })[p.position];
-
-  partPositioning.update((was) => {
-    if (was.tag === "will-move") {
-      // Mouse was down but didn't move, assume toggle
-      return toggle(was.lastStatic);
-    } else if (was.tag === "static") {
-      // Mouse was down and up, i.e. "clicked", toggle
-      return toggle(was);
-    } else {
-      // Mouse has moved
-      was.tag satisfies "moving";
-
-      // If the move was too short, assume toggle (jerk)
-      const elapsed = was.clock.getElapsedTime();
-      const delta = Math.abs(was.x - was.startPos[0]);
-      if (elapsed < 0.3 && delta < 15) {
-        return toggle(was.lastStatic);
-      }
-
-      // Snap part to one of the static positions
-      const rounded = Math.round(bound(rotation.current, [-1, 1]));
-      if (rounded <= -1) {
-        return { tag: "static", position: -1 };
-      } else if (1 <= rounded) {
-        return { tag: "static", position: 1 };
-      } else {
-        return { tag: "static", position: 0 };
-      }
-    }
-  });
+  // Simply return to static state - rotation stays where user left it
+  partPositioning.send({ tag: "static" });
 };
 
 /// LOOP
@@ -479,9 +441,11 @@ function loop(nowMillis: DOMHighResTimeStamp) {
   }
 
   // Handle rotation animation
-  const rotationUpdated = rotation.update();
-  if (rotationUpdated) {
-    mesh.rotation.z = rotation.current * Math.PI + MESH_ROTATION_DELTA;
+  const rotationZUpdated = rotationZ.update();
+  const rotationXUpdated = rotationX.update();
+  if (rotationZUpdated || rotationXUpdated) {
+    mesh.rotation.z = rotationZ.current * Math.PI + MESH_ROTATION_DELTA;
+    mesh.rotation.x = rotationX.current * Math.PI;
   }
 
   // Handle dimensions animation
