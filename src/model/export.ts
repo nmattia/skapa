@@ -50,10 +50,12 @@ export function exportManifold(manifold: Manifold): Blob {
     }
   }
 
+  const objectID = "1"; // ID of the object containing the mesh; starts at 1
+
   const to3mf: To3MF = {
-    meshes: [{ vertices, indices: manifoldMesh.triVerts, id: "0" }],
+    meshes: [{ vertices, indices: manifoldMesh.triVerts, id: objectID }],
     components: [],
-    items: [{ objectID: "0" }],
+    items: [{ objectID }],
     precision: 7,
 
     header: {
@@ -69,8 +71,8 @@ export function exportManifold(manifold: Manifold): Blob {
   const files: Zippable = {};
 
   const fileForRelThumbnail = new FileForRelThumbnail();
-  fileForRelThumbnail.add3dModel("3D/3dmodel.model");
-  files["3D/3dmodel.model"] = strToU8(model);
+  fileForRelThumbnail.add3dModel("/3D/3dmodel.model"); // OPC part name, must start with slash
+  files["3D/3dmodel.model"] = strToU8(model); // path in zip, does not start with slash
   files[fileForContentTypes.name] = strToU8(fileForContentTypes.content);
   files[fileForRelThumbnail.name] = strToU8(fileForRelThumbnail.content);
   const zipFile = zipSync(files);
